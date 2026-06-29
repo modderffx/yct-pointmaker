@@ -58,8 +58,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "FireArena — Free Fire Tournament Manager" },
+      { title: "YCT PointMaker - Free Fire AI PointMaker" },
       { name: "description", content: "Manage Free Fire tournaments. Upload screenshots, OCR results, track standings." },
+      { property: "og:title", content: "YCT PointMaker - Free Fire AI PointMaker" },
+      { name: "twitter:title", content: "YCT PointMaker - Free Fire AI PointMaker" },
+      { property: "og:description", content: "Manage Free Fire tournaments. Upload screenshots, OCR results, track standings." },
+      { name: "twitter:description", content: "Manage Free Fire tournaments. Upload screenshots, OCR results, track standings." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/bdd4e92a-5085-4a8f-bfd4-689395e577ab/id-preview-2b613215--7a5615c3-4df7-42ec-84f3-38edca503971.lovable.app-1782749940506.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/bdd4e92a-5085-4a8f-bfd4-689395e577ab/id-preview-2b613215--7a5615c3-4df7-42ec-84f3-38edca503971.lovable.app-1782749940506.png" },
+      { name: "twitter:card", content: "summary_large_image" },
+      { property: "og:type", content: "website" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
