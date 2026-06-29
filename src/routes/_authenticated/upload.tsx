@@ -24,6 +24,11 @@ type ExtractedTeam = {
   kills: number[];
   totalKills: number;
   matched_team_id: string | null;
+  suggested_team_id?: string | null;
+  suggested_team_name?: string;
+  confidence?: number;        // 0..1, set when we have a suggestion
+  matched_players?: number;   // how many IGNs overlapped
+  needs_confirmation?: boolean; // 0.4..0.7
   new_team_name?: string;
   new_team_logo?: File | null;
 };
