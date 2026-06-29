@@ -92,19 +92,27 @@ function UploadPage() {
         .sort((a, b) => a.position - b.position)
         .map(t => {
           const label = t.team_name || t.players[0] || `Team #${t.position}`;
-          const matched = matchTeam(label, list);
+          const m = matchTeamByPlayers(label, t.players, list);
+          const auto = m && m.confidence >= 0.7;
+          const suggest = m && m.confidence >= 0.4 && m.confidence < 0.7;
           return {
             position: t.position,
             team_name: label,
             players: t.players,
             kills: t.kills,
             totalKills: t.totalKills,
-            matched_team_id: matched?.id ?? null,
-            new_team_name: matched ? undefined : label,
+            matched_team_id: auto ? m!.team.id ?? null : null,
+            suggested_team_id: suggest ? m!.team.id ?? null : null,
+            suggested_team_name: suggest ? m!.team.name : undefined,
+            confidence: m?.confidence,
+            matched_players: m?.matchedPlayers,
+            needs_confirmation: !!suggest,
+            new_team_name: auto || suggest ? undefined : label,
           };
         });
       setExtracted(annotated);
-      toast.success(`Extracted ${annotated.length} teams`);
+      const autoCount = annotated.filter(a => a.matched_team_id).length;
+      toast.success(`Extracted ${annotated.length} teams · ${autoCount} auto-matched`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "OCR failed");
     } finally {
