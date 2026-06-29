@@ -14,7 +14,144 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      match_results: {
+        Row: {
+          created_at: string
+          id: string
+          kill_points: number
+          kills: number
+          match_id: string
+          placement: number
+          placement_points: number
+          players: Json
+          team_id: string | null
+          team_name_raw: string
+          total_points: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kill_points?: number
+          kills?: number
+          match_id: string
+          placement: number
+          placement_points?: number
+          players?: Json
+          team_id?: string | null
+          team_name_raw: string
+          total_points?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kill_points?: number
+          kills?: number
+          match_id?: string
+          placement?: number
+          placement_points?: number
+          players?: Json
+          team_id?: string | null
+          team_name_raw?: string
+          total_points?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "match_results_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "match_results_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      matches: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          played_at: string
+          screenshot_urls: string[]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          played_at?: string
+          screenshot_urls?: string[]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          played_at?: string
+          screenshot_urls?: string[]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      teams: {
+        Row: {
+          aliases: string[]
+          created_at: string
+          id: string
+          logo_url: string | null
+          name: string
+          short_name: string | null
+          user_id: string
+        }
+        Insert: {
+          aliases?: string[]
+          created_at?: string
+          id?: string
+          logo_url?: string | null
+          name: string
+          short_name?: string | null
+          user_id: string
+        }
+        Update: {
+          aliases?: string[]
+          created_at?: string
+          id?: string
+          logo_url?: string | null
+          name?: string
+          short_name?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_settings: {
+        Row: {
+          kill_point_value: number
+          placement_points: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          kill_point_value?: number
+          placement_points?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          kill_point_value?: number
+          placement_points?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
