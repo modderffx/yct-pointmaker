@@ -125,9 +125,30 @@ function UploadPage() {
     setSaving(true);
     try {
       const teamIdMap = new Map<number, string>();
+      const list = teams.data ?? [];
       for (let i = 0; i < extracted.length; i++) {
         const t = extracted[i];
-        if (t.matched_team_id) { teamIdMap.set(i, t.matched_team_id); continue; }
+        if (t.needs_confirmation) {
+          throw new Error(`Confirm or reject the suggested team for "${t.team_name}" first`);
+        }
+        if (t.matched_team_id) {
+          teamIdMap.set(i, t.matched_team_id);
+          // Merge any new players into the existing team roster + alias.
+          const existing = list.find(x => x.id === t.matched_team_id);
+          if (existing) {
+            const mergedPlayers = mergePlayers(existing.players ?? [], t.players);
+            const mergedAliases = mergePlayers(existing.aliases ?? [], [t.team_name]);
+            if (
+              mergedPlayers.length !== (existing.players?.length ?? 0) ||
+              mergedAliases.length !== (existing.aliases?.length ?? 0)
+            ) {
+              await supabase.from("teams")
+                .update({ players: mergedPlayers, aliases: mergedAliases })
+                .eq("id", existing.id);
+            }
+          }
+          continue;
+        }
         if (!t.new_team_name?.trim()) throw new Error(`Provide a name for unrecognized team #${i + 1}`);
         let logoPath: string | null = null;
         if (t.new_team_logo) logoPath = await uploadTeamLogo(userId, t.new_team_logo);
@@ -136,6 +157,7 @@ function UploadPage() {
           name: t.new_team_name.trim(),
           logo_url: logoPath,
           aliases: [t.team_name],
+          players: t.players,
         }).select().single();
         if (error) throw error;
         teamIdMap.set(i, newTeam.id);
