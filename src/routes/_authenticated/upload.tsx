@@ -9,7 +9,7 @@ import { Upload, Sparkles, X, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { extractMatchFromScreenshots } from "@/lib/ocr.functions";
 import { useServerFn } from "@tanstack/react-start";
-import { calcPoints, DEFAULT_PLACEMENT, matchTeam, type PlacementMap } from "@/lib/scoring";
+import { calcPoints, DEFAULT_PLACEMENT, matchTeamByPlayers, mergePlayers, type PlacementMap } from "@/lib/scoring";
 import { uploadTeamLogo } from "@/lib/teams";
 
 export const Route = createFileRoute("/_authenticated/upload")({
@@ -24,6 +24,11 @@ type ExtractedTeam = {
   kills: number[];
   totalKills: number;
   matched_team_id: string | null;
+  suggested_team_id?: string | null;
+  suggested_team_name?: string;
+  confidence?: number;        // 0..1, set when we have a suggestion
+  matched_players?: number;   // how many IGNs overlapped
+  needs_confirmation?: boolean; // 0.4..0.7
   new_team_name?: string;
   new_team_logo?: File | null;
 };
@@ -87,19 +92,27 @@ function UploadPage() {
         .sort((a, b) => a.position - b.position)
         .map(t => {
           const label = t.team_name || t.players[0] || `Team #${t.position}`;
-          const matched = matchTeam(label, list);
+          const m = matchTeamByPlayers(label, t.players, list);
+          const auto = m && m.confidence >= 0.7;
+          const suggest = m && m.confidence >= 0.4 && m.confidence < 0.7;
           return {
             position: t.position,
             team_name: label,
             players: t.players,
             kills: t.kills,
             totalKills: t.totalKills,
-            matched_team_id: matched?.id ?? null,
-            new_team_name: matched ? undefined : label,
+            matched_team_id: auto ? m!.team.id ?? null : null,
+            suggested_team_id: suggest ? m!.team.id ?? null : null,
+            suggested_team_name: suggest ? m!.team.name : undefined,
+            confidence: m?.confidence,
+            matched_players: m?.matchedPlayers,
+            needs_confirmation: !!suggest,
+            new_team_name: auto || suggest ? undefined : label,
           };
         });
       setExtracted(annotated);
-      toast.success(`Extracted ${annotated.length} teams`);
+      const autoCount = annotated.filter(a => a.matched_team_id).length;
+      toast.success(`Extracted ${annotated.length} teams · ${autoCount} auto-matched`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "OCR failed");
     } finally {
@@ -112,9 +125,30 @@ function UploadPage() {
     setSaving(true);
     try {
       const teamIdMap = new Map<number, string>();
+      const list = teams.data ?? [];
       for (let i = 0; i < extracted.length; i++) {
         const t = extracted[i];
-        if (t.matched_team_id) { teamIdMap.set(i, t.matched_team_id); continue; }
+        if (t.needs_confirmation) {
+          throw new Error(`Confirm or reject the suggested team for "${t.team_name}" first`);
+        }
+        if (t.matched_team_id) {
+          teamIdMap.set(i, t.matched_team_id);
+          // Merge any new players into the existing team roster + alias.
+          const existing = list.find(x => x.id === t.matched_team_id);
+          if (existing) {
+            const mergedPlayers = mergePlayers(existing.players ?? [], t.players);
+            const mergedAliases = mergePlayers(existing.aliases ?? [], [t.team_name]);
+            if (
+              mergedPlayers.length !== (existing.players?.length ?? 0) ||
+              mergedAliases.length !== (existing.aliases?.length ?? 0)
+            ) {
+              await supabase.from("teams")
+                .update({ players: mergedPlayers, aliases: mergedAliases })
+                .eq("id", existing.id);
+            }
+          }
+          continue;
+        }
         if (!t.new_team_name?.trim()) throw new Error(`Provide a name for unrecognized team #${i + 1}`);
         let logoPath: string | null = null;
         if (t.new_team_logo) logoPath = await uploadTeamLogo(userId, t.new_team_logo);
@@ -123,6 +157,7 @@ function UploadPage() {
           name: t.new_team_name.trim(),
           logo_url: logoPath,
           aliases: [t.team_name],
+          players: t.players,
         }).select().single();
         if (error) throw error;
         teamIdMap.set(i, newTeam.id);
@@ -275,7 +310,38 @@ function ExtractedReview({
 
                   <div className="mt-3">
                     {t.matched_team_id ? (
-                      <div className="text-xs text-emerald-400">✓ Matched to registered team</div>
+                      <div className="text-xs text-emerald-400">
+                        ✓ Auto-matched to registered team
+                        {typeof t.confidence === "number" && (
+                          <span className="text-muted-foreground"> · {Math.round(t.confidence * 100)}% confidence · {t.matched_players ?? 0} players matched</span>
+                        )}
+                      </div>
+                    ) : t.needs_confirmation && t.suggested_team_id ? (
+                      <div className="space-y-2 border-t border-border pt-3">
+                        <div className="text-xs text-amber-400">
+                          ? Possibly <span className="font-semibold text-foreground">{t.suggested_team_name}</span>
+                          {typeof t.confidence === "number" && (
+                            <span className="text-muted-foreground"> · {Math.round(t.confidence * 100)}% confidence · {t.matched_players ?? 0} players matched</span>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <Button size="sm" onClick={() => update({
+                            matched_team_id: t.suggested_team_id!,
+                            needs_confirmation: false,
+                            new_team_name: undefined,
+                          })} className="bg-gradient-gold text-gold-foreground font-semibold">
+                            Confirm match
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={() => update({
+                            suggested_team_id: null,
+                            suggested_team_name: undefined,
+                            needs_confirmation: false,
+                            new_team_name: t.team_name,
+                          })}>
+                            Reject — register new
+                          </Button>
+                        </div>
+                      </div>
                     ) : (
                       <div className="space-y-2 border-t border-border pt-3">
                         <div className="text-xs text-amber-400">⚠ Team not recognized — register it</div>
@@ -304,6 +370,7 @@ function ExtractedReview({
                       </div>
                     )}
                   </div>
+
 
                   {t.players.length > 0 && (
                     <details className="mt-3 text-sm">
