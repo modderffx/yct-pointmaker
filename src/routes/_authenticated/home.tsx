@@ -40,15 +40,15 @@ function HomePage() {
           </div>
           <h1 className="text-3xl md:text-5xl font-display font-bold mb-2">Run your Free Fire league.</h1>
           <p className="text-muted-foreground max-w-xl">Upload match screenshots — we extract placements, kills, and player stats automatically. Track every squad across the season.</p>
-          <Link to="/upload" className="inline-flex items-center gap-2 mt-6 bg-gradient-gold text-gold-foreground px-5 py-2.5 rounded-md font-semibold hover:opacity-90 shadow-glow">
-            <Upload className="w-4 h-4" /> Upload a match
+          <Link to="/tournaments" className="inline-flex items-center gap-2 mt-6 bg-gradient-gold text-gold-foreground px-5 py-2.5 rounded-md font-semibold hover:opacity-90 shadow-glow">
+            <Upload className="w-4 h-4" /> Start a tournament
           </Link>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <StatCard label="Teams" value={stats.data?.teams ?? 0} icon={Users} href="/teams" />
-        <StatCard label="Matches Played" value={stats.data?.matches ?? 0} icon={Flame} href="/upload" />
+        <StatCard label="Matches Played" value={stats.data?.matches ?? 0} icon={Flame} href="/tournaments" />
         <StatCard label="Results Tracked" value={stats.data?.results ?? 0} icon={Trophy} href="/standings" />
       </div>
 
@@ -73,7 +73,7 @@ function HomePage() {
   );
 }
 
-function StatCard({ label, value, icon: Icon, href }: { label: string; value: number; icon: React.ComponentType<{ className?: string }>; href: "/teams" | "/upload" | "/standings" }) {
+function StatCard({ label, value, icon: Icon, href }: { label: string; value: number; icon: React.ComponentType<{ className?: string }>; href: "/teams" | "/tournaments" | "/standings" }) {
   return (
     <Link to={href} className="rounded-xl border border-border bg-card p-5 hover:border-gold/50 transition group">
       <div className="flex items-center justify-between">

@@ -20,13 +20,21 @@ type Row = {
 function StandingsPage() {
   const exportRef = useRef<HTMLDivElement>(null);
   const [exporting, setExporting] = useState(false);
+  const [tournamentId, setTournamentId] = useState<string>("");
+
+  const tournaments = useQuery({
+    queryKey: ["tournaments"],
+    queryFn: async () => (await supabase.from("tournaments").select("id,name").order("created_at", { ascending: false })).data ?? [],
+  });
 
   const data = useQuery({
-    queryKey: ["standings"],
+    queryKey: ["standings", tournamentId],
     queryFn: async () => {
-      const { data: results } = await supabase
+      let q = supabase
         .from("match_results")
-        .select("team_id,team_name_raw,placement,kills,placement_points,kill_points,total_points,team:teams(name,logo_url)");
+        .select("team_id,team_name_raw,placement,kills,placement_points,kill_points,total_points,team:teams(name,logo_url),match:matches!inner(tournament_id)");
+      if (tournamentId) q = q.eq("match.tournament_id", tournamentId);
+      const { data: results } = await q;
       return results ?? [];
     },
   });
@@ -82,10 +90,20 @@ function StandingsPage() {
           <h1 className="text-3xl font-display font-bold flex items-center gap-2"><Trophy className="w-7 h-7 text-gold" /> Standings</h1>
           <p className="text-muted-foreground">Aggregated across all saved matches.</p>
         </div>
-        <Button onClick={handleExport} disabled={exporting || rows.length === 0} className="bg-gold text-black hover:bg-gold/90 font-display">
-          <Download className="w-4 h-4 mr-2" />
-          {exporting ? "Exporting…" : "Export Standings"}
-        </Button>
+        <div className="flex items-center gap-2">
+          <select
+            value={tournamentId}
+            onChange={e => setTournamentId(e.target.value)}
+            className="bg-input border border-border rounded-md px-3 py-2 text-sm"
+          >
+            <option value="">All tournaments</option>
+            {tournaments.data?.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+          </select>
+          <Button onClick={handleExport} disabled={exporting || rows.length === 0} className="bg-gold text-black hover:bg-gold/90 font-display">
+            <Download className="w-4 h-4 mr-2" />
+            {exporting ? "Exporting…" : "Export Standings"}
+          </Button>
+        </div>
       </div>
 
       <div className="rounded-xl border border-border bg-card overflow-hidden">
