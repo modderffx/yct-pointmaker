@@ -18,6 +18,7 @@ import { Route as AuthenticatedTeamsRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedStandingsRouteImport } from './routes/_authenticated/standings'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedHomeRouteImport } from './routes/_authenticated/home'
+import { Route as AuthenticatedTournamentsIdRouteImport } from './routes/_authenticated/tournaments.$id'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -64,6 +65,12 @@ const AuthenticatedHomeRoute = AuthenticatedHomeRouteImport.update({
   path: '/home',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedTournamentsIdRoute =
+  AuthenticatedTournamentsIdRouteImport.update({
+    id: '/$id',
+    path: '/$id',
+    getParentRoute: () => AuthenticatedTournamentsRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -72,8 +79,9 @@ export interface FileRoutesByFullPath {
   '/settings': typeof AuthenticatedSettingsRoute
   '/standings': typeof AuthenticatedStandingsRoute
   '/teams': typeof AuthenticatedTeamsRoute
-  '/tournaments': typeof AuthenticatedTournamentsRoute
+  '/tournaments': typeof AuthenticatedTournamentsRouteWithChildren
   '/upload': typeof AuthenticatedUploadRoute
+  '/tournaments/$id': typeof AuthenticatedTournamentsIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -82,8 +90,9 @@ export interface FileRoutesByTo {
   '/settings': typeof AuthenticatedSettingsRoute
   '/standings': typeof AuthenticatedStandingsRoute
   '/teams': typeof AuthenticatedTeamsRoute
-  '/tournaments': typeof AuthenticatedTournamentsRoute
+  '/tournaments': typeof AuthenticatedTournamentsRouteWithChildren
   '/upload': typeof AuthenticatedUploadRoute
+  '/tournaments/$id': typeof AuthenticatedTournamentsIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -94,8 +103,9 @@ export interface FileRoutesById {
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/standings': typeof AuthenticatedStandingsRoute
   '/_authenticated/teams': typeof AuthenticatedTeamsRoute
-  '/_authenticated/tournaments': typeof AuthenticatedTournamentsRoute
+  '/_authenticated/tournaments': typeof AuthenticatedTournamentsRouteWithChildren
   '/_authenticated/upload': typeof AuthenticatedUploadRoute
+  '/_authenticated/tournaments/$id': typeof AuthenticatedTournamentsIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -108,6 +118,7 @@ export interface FileRouteTypes {
     | '/teams'
     | '/tournaments'
     | '/upload'
+    | '/tournaments/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -118,6 +129,7 @@ export interface FileRouteTypes {
     | '/teams'
     | '/tournaments'
     | '/upload'
+    | '/tournaments/$id'
   id:
     | '__root__'
     | '/'
@@ -129,6 +141,7 @@ export interface FileRouteTypes {
     | '/_authenticated/teams'
     | '/_authenticated/tournaments'
     | '/_authenticated/upload'
+    | '/_authenticated/tournaments/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -202,15 +215,36 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedHomeRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/tournaments/$id': {
+      id: '/_authenticated/tournaments/$id'
+      path: '/$id'
+      fullPath: '/tournaments/$id'
+      preLoaderRoute: typeof AuthenticatedTournamentsIdRouteImport
+      parentRoute: typeof AuthenticatedTournamentsRoute
+    }
   }
 }
+
+interface AuthenticatedTournamentsRouteChildren {
+  AuthenticatedTournamentsIdRoute: typeof AuthenticatedTournamentsIdRoute
+}
+
+const AuthenticatedTournamentsRouteChildren: AuthenticatedTournamentsRouteChildren =
+  {
+    AuthenticatedTournamentsIdRoute: AuthenticatedTournamentsIdRoute,
+  }
+
+const AuthenticatedTournamentsRouteWithChildren =
+  AuthenticatedTournamentsRoute._addFileChildren(
+    AuthenticatedTournamentsRouteChildren,
+  )
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedHomeRoute: typeof AuthenticatedHomeRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedStandingsRoute: typeof AuthenticatedStandingsRoute
   AuthenticatedTeamsRoute: typeof AuthenticatedTeamsRoute
-  AuthenticatedTournamentsRoute: typeof AuthenticatedTournamentsRoute
+  AuthenticatedTournamentsRoute: typeof AuthenticatedTournamentsRouteWithChildren
   AuthenticatedUploadRoute: typeof AuthenticatedUploadRoute
 }
 
@@ -219,7 +253,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedStandingsRoute: AuthenticatedStandingsRoute,
   AuthenticatedTeamsRoute: AuthenticatedTeamsRoute,
-  AuthenticatedTournamentsRoute: AuthenticatedTournamentsRoute,
+  AuthenticatedTournamentsRoute: AuthenticatedTournamentsRouteWithChildren,
   AuthenticatedUploadRoute: AuthenticatedUploadRoute,
 }
 
