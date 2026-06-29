@@ -9,7 +9,7 @@ import { Upload, Sparkles, X, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { extractMatchFromScreenshots } from "@/lib/ocr.functions";
 import { useServerFn } from "@tanstack/react-start";
-import { calcPoints, DEFAULT_PLACEMENT, matchTeam, type PlacementMap } from "@/lib/scoring";
+import { calcPoints, DEFAULT_PLACEMENT, matchTeamByPlayers, mergePlayers, type PlacementMap } from "@/lib/scoring";
 import { uploadTeamLogo } from "@/lib/teams";
 
 export const Route = createFileRoute("/_authenticated/upload")({
