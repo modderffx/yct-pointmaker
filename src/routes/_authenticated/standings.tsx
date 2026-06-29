@@ -90,10 +90,20 @@ function StandingsPage() {
           <h1 className="text-3xl font-display font-bold flex items-center gap-2"><Trophy className="w-7 h-7 text-gold" /> Standings</h1>
           <p className="text-muted-foreground">Aggregated across all saved matches.</p>
         </div>
-        <Button onClick={handleExport} disabled={exporting || rows.length === 0} className="bg-gold text-black hover:bg-gold/90 font-display">
-          <Download className="w-4 h-4 mr-2" />
-          {exporting ? "Exporting…" : "Export Standings"}
-        </Button>
+        <div className="flex items-center gap-2">
+          <select
+            value={tournamentId}
+            onChange={e => setTournamentId(e.target.value)}
+            className="bg-input border border-border rounded-md px-3 py-2 text-sm"
+          >
+            <option value="">All tournaments</option>
+            {tournaments.data?.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+          </select>
+          <Button onClick={handleExport} disabled={exporting || rows.length === 0} className="bg-gold text-black hover:bg-gold/90 font-display">
+            <Download className="w-4 h-4 mr-2" />
+            {exporting ? "Exporting…" : "Export Standings"}
+          </Button>
+        </div>
       </div>
 
       <div className="rounded-xl border border-border bg-card overflow-hidden">
