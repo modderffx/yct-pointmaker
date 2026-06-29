@@ -20,13 +20,21 @@ type Row = {
 function StandingsPage() {
   const exportRef = useRef<HTMLDivElement>(null);
   const [exporting, setExporting] = useState(false);
+  const [tournamentId, setTournamentId] = useState<string>("");
+
+  const tournaments = useQuery({
+    queryKey: ["tournaments"],
+    queryFn: async () => (await supabase.from("tournaments").select("id,name").order("created_at", { ascending: false })).data ?? [],
+  });
 
   const data = useQuery({
-    queryKey: ["standings"],
+    queryKey: ["standings", tournamentId],
     queryFn: async () => {
-      const { data: results } = await supabase
+      let q = supabase
         .from("match_results")
-        .select("team_id,team_name_raw,placement,kills,placement_points,kill_points,total_points,team:teams(name,logo_url)");
+        .select("team_id,team_name_raw,placement,kills,placement_points,kill_points,total_points,team:teams(name,logo_url),match:matches!inner(tournament_id)");
+      if (tournamentId) q = q.eq("match.tournament_id", tournamentId);
+      const { data: results } = await q;
       return results ?? [];
     },
   });
