@@ -40,8 +40,8 @@ function HomePage() {
           </div>
           <h1 className="text-3xl md:text-5xl font-display font-bold mb-2">Run your Free Fire league.</h1>
           <p className="text-muted-foreground max-w-xl">Upload match screenshots — we extract placements, kills, and player stats automatically. Track every squad across the season.</p>
-          <Link to="/upload" className="inline-flex items-center gap-2 mt-6 bg-gradient-gold text-gold-foreground px-5 py-2.5 rounded-md font-semibold hover:opacity-90 shadow-glow">
-            <Upload className="w-4 h-4" /> Upload a match
+          <Link to="/tournaments" className="inline-flex items-center gap-2 mt-6 bg-gradient-gold text-gold-foreground px-5 py-2.5 rounded-md font-semibold hover:opacity-90 shadow-glow">
+            <Upload className="w-4 h-4" /> Start a tournament
           </Link>
         </div>
       </div>
