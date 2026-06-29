@@ -78,28 +78,45 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          map_name: string | null
+          match_number: number | null
           name: string
           played_at: string
           screenshot_urls: string[]
+          tournament_id: string | null
           user_id: string
         }
         Insert: {
           created_at?: string
           id?: string
+          map_name?: string | null
+          match_number?: number | null
           name: string
           played_at?: string
           screenshot_urls?: string[]
+          tournament_id?: string | null
           user_id: string
         }
         Update: {
           created_at?: string
           id?: string
+          map_name?: string | null
+          match_number?: number | null
           name?: string
           played_at?: string
           screenshot_urls?: string[]
+          tournament_id?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "matches_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       teams: {
         Row: {
@@ -130,6 +147,36 @@ export type Database = {
           name?: string
           players?: string[]
           short_name?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      tournaments: {
+        Row: {
+          created_at: string
+          id: string
+          maps: string[]
+          name: string
+          series_type: string
+          total_matches: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          maps?: string[]
+          name: string
+          series_type: string
+          total_matches: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          maps?: string[]
+          name?: string
+          series_type?: string
+          total_matches?: number
           user_id?: string
         }
         Relationships: []
