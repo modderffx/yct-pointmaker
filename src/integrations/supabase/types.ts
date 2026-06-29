@@ -108,6 +108,7 @@ export type Database = {
           id: string
           logo_url: string | null
           name: string
+          players: string[]
           short_name: string | null
           user_id: string
         }
@@ -117,6 +118,7 @@ export type Database = {
           id?: string
           logo_url?: string | null
           name: string
+          players?: string[]
           short_name?: string | null
           user_id: string
         }
@@ -126,6 +128,7 @@ export type Database = {
           id?: string
           logo_url?: string | null
           name?: string
+          players?: string[]
           short_name?: string | null
           user_id?: string
         }
