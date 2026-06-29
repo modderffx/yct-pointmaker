@@ -2,26 +2,45 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 
-const ResultSchema = z.object({
-  teams: z.array(z.object({
-    team_name: z.string(),
-    placement: z.number().int().min(1).max(20),
-    total_kills: z.number().int().min(0).default(0),
-    players: z.array(z.object({
-      name: z.string(),
-      kills: z.number().int().min(0).default(0),
-    })).default([]),
-  })),
+const TeamSchema = z.object({
+  position: z.number().int().min(1).max(20),
+  team_name: z.string().optional().default(""),
+  players: z.array(z.string()).default([]),
+  kills: z.array(z.number().int().min(0)).default([]),
+  totalKills: z.number().int().min(0).default(0),
 });
 
-const SYSTEM_PROMPT = `You are an OCR engine specialized in Free Fire tournament result screenshots.
-Extract every team visible across the provided screenshots. Return JSON only matching this exact shape:
-{"teams":[{"team_name":string,"placement":number,"total_kills":number,"players":[{"name":string,"kills":number}]}]}
-- placement = team finishing position (1 = best).
-- total_kills = total team eliminations.
-- players = list of player IGNs with their individual kills if visible. Empty array if not visible.
-- If the same team appears in both screenshots, merge them (do not duplicate).
-- Use the team name/tag shown in the screenshot exactly. Do not invent teams.`;
+const ResultSchema = z.object({
+  teams: z.array(TeamSchema),
+});
+
+export type OcrTeam = z.infer<typeof TeamSchema>;
+export type OcrResult = z.infer<typeof ResultSchema>;
+
+const SYSTEM_PROMPT = `You are a Gemini Vision OCR engine specialized in Free Fire tournament result screenshots.
+Extract every team visible across the provided screenshots.
+
+Return JSON ONLY (no prose, no markdown) matching this EXACT shape:
+{
+  "teams": [
+    {
+      "position": 1,
+      "team_name": "SLC",
+      "players": ["SLC PANDASR", "SLC RANIYASR", "SLC Mr.Sani", "SLC THARuuSR"],
+      "kills": [5, 5, 5, 6],
+      "totalKills": 21
+    }
+  ]
+}
+
+Rules:
+- position = team finishing rank (1 = best / WWCD).
+- players = array of in-game names (IGNs) in display order.
+- kills = array of individual eliminations, SAME order and SAME length as players.
+- totalKills = sum of the team's eliminations as shown on screen.
+- team_name = the team tag/clan shown (e.g. "SLC"). Empty string if none visible.
+- If the same team appears in multiple screenshots, merge into ONE entry (do not duplicate).
+- Use the exact text from the screenshot. Do not invent players or teams.`;
 
 export const extractMatchFromScreenshots = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -37,7 +56,7 @@ export const extractMatchFromScreenshots = createServerFn({ method: "POST" })
     if (!apiKey) throw new Error("LOVABLE_API_KEY not configured");
 
     const content: Array<Record<string, unknown>> = [
-      { type: "text", text: "Extract all Free Fire match results from these screenshots. Return JSON only." },
+      { type: "text", text: "Extract all Free Fire match results from these screenshots. Return JSON only matching the specified schema." },
       ...data.images.map(img => ({ type: "image_url", image_url: { url: img.data_url } })),
     ];
 
@@ -61,7 +80,7 @@ export const extractMatchFromScreenshots = createServerFn({ method: "POST" })
       const txt = await resp.text();
       if (resp.status === 429) throw new Error("AI rate limit reached. Try again shortly.");
       if (resp.status === 402) throw new Error("AI credits exhausted. Add credits in Lovable workspace settings.");
-      throw new Error(`AI OCR failed (${resp.status}): ${txt.slice(0, 200)}`);
+      throw new Error(`Gemini OCR failed (${resp.status}): ${txt.slice(0, 200)}`);
     }
 
     const body = await resp.json() as { choices?: Array<{ message?: { content?: string } }> };
@@ -70,13 +89,20 @@ export const extractMatchFromScreenshots = createServerFn({ method: "POST" })
     try {
       parsed = JSON.parse(text);
     } catch {
-      // try to salvage JSON inside
       const m = text.match(/\{[\s\S]*\}/);
       parsed = m ? JSON.parse(m[0]) : { teams: [] };
     }
-    const result = ResultSchema.safeParse(parsed);
-    if (!result.success) {
-      return { teams: [] as Array<z.infer<typeof ResultSchema>["teams"][number]> };
-    }
-    return result.data;
+
+    // Normalize: pad/truncate kills array to match players length, recompute totalKills if missing
+    const safe = ResultSchema.safeParse(parsed);
+    if (!safe.success) return { teams: [] as OcrTeam[] };
+
+    const teams = safe.data.teams.map(t => {
+      const players = t.players;
+      const kills = players.map((_, i) => t.kills[i] ?? 0);
+      const totalKills = t.totalKills || kills.reduce((a, b) => a + b, 0);
+      return { ...t, players, kills, totalKills };
+    }).sort((a, b) => a.position - b.position);
+
+    return { teams };
   });
