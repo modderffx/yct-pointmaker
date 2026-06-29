@@ -310,7 +310,38 @@ function ExtractedReview({
 
                   <div className="mt-3">
                     {t.matched_team_id ? (
-                      <div className="text-xs text-emerald-400">✓ Matched to registered team</div>
+                      <div className="text-xs text-emerald-400">
+                        ✓ Auto-matched to registered team
+                        {typeof t.confidence === "number" && (
+                          <span className="text-muted-foreground"> · {Math.round(t.confidence * 100)}% confidence · {t.matched_players ?? 0} players matched</span>
+                        )}
+                      </div>
+                    ) : t.needs_confirmation && t.suggested_team_id ? (
+                      <div className="space-y-2 border-t border-border pt-3">
+                        <div className="text-xs text-amber-400">
+                          ? Possibly <span className="font-semibold text-foreground">{t.suggested_team_name}</span>
+                          {typeof t.confidence === "number" && (
+                            <span className="text-muted-foreground"> · {Math.round(t.confidence * 100)}% confidence · {t.matched_players ?? 0} players matched</span>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <Button size="sm" onClick={() => update({
+                            matched_team_id: t.suggested_team_id!,
+                            needs_confirmation: false,
+                            new_team_name: undefined,
+                          })} className="bg-gradient-gold text-gold-foreground font-semibold">
+                            Confirm match
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={() => update({
+                            suggested_team_id: null,
+                            suggested_team_name: undefined,
+                            needs_confirmation: false,
+                            new_team_name: t.team_name,
+                          })}>
+                            Reject — register new
+                          </Button>
+                        </div>
+                      </div>
                     ) : (
                       <div className="space-y-2 border-t border-border pt-3">
                         <div className="text-xs text-amber-400">⚠ Team not recognized — register it</div>
@@ -339,6 +370,7 @@ function ExtractedReview({
                       </div>
                     )}
                   </div>
+
 
                   {t.players.length > 0 && (
                     <details className="mt-3 text-sm">
