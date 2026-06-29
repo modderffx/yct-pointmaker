@@ -48,7 +48,7 @@ function HomePage() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <StatCard label="Teams" value={stats.data?.teams ?? 0} icon={Users} href="/teams" />
-        <StatCard label="Matches Played" value={stats.data?.matches ?? 0} icon={Flame} href="/upload" />
+        <StatCard label="Matches Played" value={stats.data?.matches ?? 0} icon={Flame} href="/tournaments" />
         <StatCard label="Results Tracked" value={stats.data?.results ?? 0} icon={Trophy} href="/standings" />
       </div>
 
