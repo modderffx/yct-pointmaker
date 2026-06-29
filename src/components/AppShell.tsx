@@ -1,12 +1,12 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { Flame, Home, Upload, Users, Trophy, Settings as SettingsIcon, LogOut } from "lucide-react";
+import { Flame, Home, Swords, Users, Trophy, Settings as SettingsIcon, LogOut } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 
 const nav = [
   { to: "/home", label: "Home", icon: Home },
-  { to: "/upload", label: "Upload Match", icon: Upload },
+  { to: "/tournaments", label: "Tournaments", icon: Swords },
   { to: "/teams", label: "Teams", icon: Users },
   { to: "/standings", label: "Standings", icon: Trophy },
   { to: "/settings", label: "Settings", icon: SettingsIcon },
