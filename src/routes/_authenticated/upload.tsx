@@ -18,10 +18,11 @@ export const Route = createFileRoute("/_authenticated/upload")({
 });
 
 type ExtractedTeam = {
+  position: number;
   team_name: string;
-  placement: number;
-  total_kills: number;
-  players: { name: string; kills: number }[];
+  players: string[];
+  kills: number[];
+  totalKills: number;
   matched_team_id: string | null;
   new_team_name?: string;
   new_team_logo?: File | null;
@@ -83,13 +84,18 @@ function UploadPage() {
       }
       const list = teams.data ?? [];
       const annotated: ExtractedTeam[] = result.teams
-        .sort((a, b) => a.placement - b.placement)
+        .sort((a, b) => a.position - b.position)
         .map(t => {
-          const matched = matchTeam(t.team_name, list);
+          const label = t.team_name || t.players[0] || `Team #${t.position}`;
+          const matched = matchTeam(label, list);
           return {
-            ...t,
+            position: t.position,
+            team_name: label,
+            players: t.players,
+            kills: t.kills,
+            totalKills: t.totalKills,
             matched_team_id: matched?.id ?? null,
-            new_team_name: matched ? undefined : t.team_name,
+            new_team_name: matched ? undefined : label,
           };
         });
       setExtracted(annotated);
@@ -105,8 +111,7 @@ function UploadPage() {
     if (!extracted) return;
     setSaving(true);
     try {
-      // 1) create missing teams
-      const teamIdMap = new Map<number, string>(); // index -> team_id
+      const teamIdMap = new Map<number, string>();
       for (let i = 0; i < extracted.length; i++) {
         const t = extracted[i];
         if (t.matched_team_id) { teamIdMap.set(i, t.matched_team_id); continue; }
@@ -123,7 +128,6 @@ function UploadPage() {
         teamIdMap.set(i, newTeam.id);
       }
 
-      // 2) upload screenshots
       const screenshotPaths: string[] = [];
       for (const f of files) {
         const p = `${userId}/${crypto.randomUUID()}.${f.name.split(".").pop() || "png"}`;
@@ -132,27 +136,26 @@ function UploadPage() {
         screenshotPaths.push(p);
       }
 
-      // 3) insert match
       const { data: match, error: mErr } = await supabase.from("matches").insert({
         user_id: userId, name: matchName.trim(),
         screenshot_urls: screenshotPaths,
       }).select().single();
       if (mErr) throw mErr;
 
-      // 4) insert results
       const rows = extracted.map((t, i) => {
-        const pts = calcPoints(t.placement, t.total_kills, placementMap, killValue);
+        const pts = calcPoints(t.position, t.totalKills, placementMap, killValue);
+        const playersJson = t.players.map((name, idx) => ({ name, kills: t.kills[idx] ?? 0 }));
         return {
           user_id: userId,
           match_id: match.id,
           team_id: teamIdMap.get(i)!,
           team_name_raw: t.team_name,
-          placement: t.placement,
-          kills: t.total_kills,
+          placement: t.position,
+          kills: t.totalKills,
           placement_points: pts.placement_points,
           kill_points: pts.kill_points,
           total_points: pts.total_points,
-          players: t.players,
+          players: playersJson,
         };
       });
       const { error: rErr } = await supabase.from("match_results").insert(rows);
@@ -172,7 +175,7 @@ function UploadPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-display font-bold">Upload Match</h1>
-        <p className="text-muted-foreground">Upload 1–2 screenshots. AI will extract placements, kills, and players.</p>
+        <p className="text-muted-foreground">Upload 1–2 screenshots. Gemini Vision will extract placements, kills, and players.</p>
       </div>
 
       {!extracted && (
@@ -199,7 +202,7 @@ function UploadPage() {
           </div>
 
           <Button onClick={handleProcess} disabled={processing || files.length === 0} className="bg-gradient-gold text-gold-foreground font-semibold w-full md:w-auto">
-            {processing ? <>Reading screenshots…</> : <><Sparkles className="w-4 h-4 mr-2" /> Extract with AI</>}
+            {processing ? <>Reading screenshots…</> : <><Sparkles className="w-4 h-4 mr-2" /> Extract with Gemini</>}
           </Button>
         </div>
       )}
@@ -240,7 +243,7 @@ function ExtractedReview({
       </div>
       <div className="space-y-3">
         {teams.map((t, i) => {
-          const pts = calcPoints(t.placement, t.total_kills, placementMap, killValue);
+          const pts = calcPoints(t.position, t.totalKills, placementMap, killValue);
           const update = (patch: Partial<ExtractedTeam>) => {
             const next = [...teams]; next[i] = { ...next[i], ...patch }; setTeams(next);
           };
@@ -248,12 +251,12 @@ function ExtractedReview({
             <div key={i} className="rounded-xl border border-border bg-card p-4">
               <div className="flex items-start gap-4">
                 <div className="w-12 h-12 rounded-lg bg-gradient-gold text-gold-foreground flex items-center justify-center font-display font-bold text-xl">
-                  #{t.placement}
+                  #{t.position}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
                     <div className="font-display font-bold text-lg truncate">{t.team_name}</div>
-                    <div className="text-xs text-muted-foreground">{t.players.length} players · {t.total_kills} kills</div>
+                    <div className="text-xs text-muted-foreground">{t.players.length} players · {t.totalKills} kills</div>
                   </div>
                   <div className="mt-2 grid grid-cols-3 gap-3 text-sm">
                     <div className="bg-muted rounded-md px-3 py-2">
@@ -306,10 +309,10 @@ function ExtractedReview({
                     <details className="mt-3 text-sm">
                       <summary className="cursor-pointer text-muted-foreground hover:text-foreground">Players</summary>
                       <ul className="mt-2 grid grid-cols-2 gap-1 text-xs">
-                        {t.players.map((p, pi) => (
+                        {t.players.map((name, pi) => (
                           <li key={pi} className="flex justify-between bg-muted rounded px-2 py-1">
-                            <span className="truncate">{p.name}</span>
-                            <span className="text-gold">{p.kills} K</span>
+                            <span className="truncate">{name}</span>
+                            <span className="text-gold">{t.kills[pi] ?? 0} K</span>
                           </li>
                         ))}
                       </ul>
