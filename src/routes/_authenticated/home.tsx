@@ -73,7 +73,7 @@ function HomePage() {
   );
 }
 
-function StatCard({ label, value, icon: Icon, href }: { label: string; value: number; icon: React.ComponentType<{ className?: string }>; href: "/teams" | "/upload" | "/standings" }) {
+function StatCard({ label, value, icon: Icon, href }: { label: string; value: number; icon: React.ComponentType<{ className?: string }>; href: "/teams" | "/tournaments" | "/standings" }) {
   return (
     <Link to={href} className="rounded-xl border border-border bg-card p-5 hover:border-gold/50 transition group">
       <div className="flex items-center justify-between">
