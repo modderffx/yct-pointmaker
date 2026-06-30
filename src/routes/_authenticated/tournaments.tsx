@@ -95,10 +95,11 @@ function TournamentsPage() {
           <div className="grid sm:grid-cols-2 gap-3">
             {(["3", "5"] as SeriesType[]).map(s => {
               const active = series === s;
-              const maps = SERIES_MAPS[s];
+              const maps = Array.isArray(SERIES_MAPS[s]) ? SERIES_MAPS[s] : [];
               return (
                 <button
                   key={s}
+
                   type="button"
                   onClick={() => setSeries(s)}
                   className={`text-left rounded-lg border p-4 transition ${active ? "border-gold bg-gold/10" : "border-border hover:border-gold/50"}`}
@@ -129,7 +130,9 @@ function TournamentsPage() {
         <div className="grid gap-3 md:grid-cols-2">
           {list.data?.map(t => {
             const completed = matchCounts.data?.get(t.id) ?? 0;
-            const pct = Math.min(100, Math.round((completed / t.total_matches) * 100));
+            const maps = Array.isArray(t?.maps) ? t.maps : [];
+            const totalMatches = t?.total_matches ?? maps.length ?? 0;
+            const pct = totalMatches ? Math.min(100, Math.round((completed / totalMatches) * 100)) : 0;
             return (
               <Link
                 key={t.id}
@@ -139,21 +142,23 @@ function TournamentsPage() {
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <div className="font-display font-bold truncate">{t.name}</div>
-                    <div className="text-xs text-muted-foreground">{t.series_type}-match series · {new Date(t.created_at).toLocaleDateString()}</div>
+                    <div className="font-display font-bold truncate">{t?.name ?? "Untitled"}</div>
+                    <div className="text-xs text-muted-foreground">{t?.series_type ?? "?"}-match series · {t?.created_at ? new Date(t.created_at).toLocaleDateString() : ""}</div>
                   </div>
-                  <span className="text-xs font-medium text-gold whitespace-nowrap">{completed}/{t.total_matches}</span>
+                  <span className="text-xs font-medium text-gold whitespace-nowrap">{completed}/{totalMatches}</span>
+
                 </div>
                 <div className="mt-3 h-1.5 rounded-full bg-muted overflow-hidden">
                   <div className="h-full bg-gradient-gold" style={{ width: `${pct}%` }} />
                 </div>
                 <div className="mt-3 flex flex-wrap gap-1 text-[10px] text-muted-foreground">
-                  {t.maps.map((m, i) => (
+                  {maps.map((m, i) => (
                     <span key={i} className={`px-1.5 py-0.5 rounded ${i < completed ? "bg-gold/20 text-gold" : "bg-muted"}`}>
                       <MapIcon className="inline w-3 h-3 mr-0.5" />{m}
                     </span>
                   ))}
                 </div>
+
               </Link>
             );
           })}
