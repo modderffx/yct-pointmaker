@@ -1,5 +1,5 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { Flame, Home, Swords, Users, Trophy, Settings as SettingsIcon, LogOut } from "lucide-react";
+import { Flame, Home, Swords, Users, Trophy, Settings as SettingsIcon, LogOut, Grid3x3 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import type { ReactNode } from "react";
@@ -8,9 +8,11 @@ const nav = [
   { to: "/home", label: "Home", icon: Home },
   { to: "/tournaments", label: "Tournaments", icon: Swords },
   { to: "/teams", label: "Teams", icon: Users },
+  { to: "/slots", label: "Slots", icon: Grid3x3 },
   { to: "/standings", label: "Standings", icon: Trophy },
   { to: "/settings", label: "Settings", icon: SettingsIcon },
 ] as const;
+
 
 export function AppShell({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
