@@ -16,6 +16,7 @@ import { Route as AuthenticatedUploadRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedTournamentsRouteImport } from './routes/_authenticated/tournaments'
 import { Route as AuthenticatedTeamsRouteImport } from './routes/_authenticated/teams'
 import { Route as AuthenticatedStandingsRouteImport } from './routes/_authenticated/standings'
+import { Route as AuthenticatedSlotsRouteImport } from './routes/_authenticated/slots'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedHomeRouteImport } from './routes/_authenticated/home'
 import { Route as AuthenticatedTournamentsIdRouteImport } from './routes/_authenticated/tournaments.$id'
@@ -55,6 +56,11 @@ const AuthenticatedStandingsRoute = AuthenticatedStandingsRouteImport.update({
   path: '/standings',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedSlotsRoute = AuthenticatedSlotsRouteImport.update({
+  id: '/slots',
+  path: '/slots',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -77,6 +83,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/home': typeof AuthenticatedHomeRoute
   '/settings': typeof AuthenticatedSettingsRoute
+  '/slots': typeof AuthenticatedSlotsRoute
   '/standings': typeof AuthenticatedStandingsRoute
   '/teams': typeof AuthenticatedTeamsRoute
   '/tournaments': typeof AuthenticatedTournamentsRouteWithChildren
@@ -88,6 +95,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/home': typeof AuthenticatedHomeRoute
   '/settings': typeof AuthenticatedSettingsRoute
+  '/slots': typeof AuthenticatedSlotsRoute
   '/standings': typeof AuthenticatedStandingsRoute
   '/teams': typeof AuthenticatedTeamsRoute
   '/tournaments': typeof AuthenticatedTournamentsRouteWithChildren
@@ -101,6 +109,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/_authenticated/home': typeof AuthenticatedHomeRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
+  '/_authenticated/slots': typeof AuthenticatedSlotsRoute
   '/_authenticated/standings': typeof AuthenticatedStandingsRoute
   '/_authenticated/teams': typeof AuthenticatedTeamsRoute
   '/_authenticated/tournaments': typeof AuthenticatedTournamentsRouteWithChildren
@@ -114,6 +123,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/home'
     | '/settings'
+    | '/slots'
     | '/standings'
     | '/teams'
     | '/tournaments'
@@ -125,6 +135,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/home'
     | '/settings'
+    | '/slots'
     | '/standings'
     | '/teams'
     | '/tournaments'
@@ -137,6 +148,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/_authenticated/home'
     | '/_authenticated/settings'
+    | '/_authenticated/slots'
     | '/_authenticated/standings'
     | '/_authenticated/teams'
     | '/_authenticated/tournaments'
@@ -201,6 +213,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedStandingsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/slots': {
+      id: '/_authenticated/slots'
+      path: '/slots'
+      fullPath: '/slots'
+      preLoaderRoute: typeof AuthenticatedSlotsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/settings': {
       id: '/_authenticated/settings'
       path: '/settings'
@@ -242,6 +261,7 @@ const AuthenticatedTournamentsRouteWithChildren =
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedHomeRoute: typeof AuthenticatedHomeRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
+  AuthenticatedSlotsRoute: typeof AuthenticatedSlotsRoute
   AuthenticatedStandingsRoute: typeof AuthenticatedStandingsRoute
   AuthenticatedTeamsRoute: typeof AuthenticatedTeamsRoute
   AuthenticatedTournamentsRoute: typeof AuthenticatedTournamentsRouteWithChildren
@@ -251,6 +271,7 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedHomeRoute: AuthenticatedHomeRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
+  AuthenticatedSlotsRoute: AuthenticatedSlotsRoute,
   AuthenticatedStandingsRoute: AuthenticatedStandingsRoute,
   AuthenticatedTeamsRoute: AuthenticatedTeamsRoute,
   AuthenticatedTournamentsRoute: AuthenticatedTournamentsRouteWithChildren,
@@ -268,3 +289,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
