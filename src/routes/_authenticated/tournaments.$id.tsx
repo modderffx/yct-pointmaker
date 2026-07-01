@@ -295,8 +295,11 @@ function TournamentDetailPage() {
   return (
     <div className="space-y-8">
       <div>
-        <Link to="/tournaments" className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1">
-          <ArrowLeft className="w-3 h-3" /> All tournaments
+        <Link
+          to="/tournaments"
+          className="inline-flex items-center gap-2 rounded-md border border-border bg-card px-3 py-1.5 text-sm font-medium hover:border-gold/50 hover:text-gold transition"
+        >
+          <ArrowLeft className="w-4 h-4" /> Back to Tournaments
         </Link>
         <h1 className="text-3xl font-display font-bold flex items-center gap-2 mt-2">
           <Trophy className="w-7 h-7 text-gold" /> {t.name}
