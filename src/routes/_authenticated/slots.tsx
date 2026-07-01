@@ -8,7 +8,7 @@ import { toPng } from "html-to-image";
 import { THEMES, THEME_LIST, type ExportTheme, type ThemeKey } from "@/lib/standings-themes";
 
 export const Route = createFileRoute("/_authenticated/slots")({
-  head: () => ({ meta: [{ title: "Slot List — FireArena" }] }),
+  head: () => ({ meta: [{ title: "Slot List — YCT PointMaker" }] }),
   component: SlotsPage,
 });
 
@@ -347,9 +347,9 @@ const SlotExportCard = ({
         }}
       >
         <div style={{ textTransform: "uppercase", fontWeight: 700, color: theme.footerText }}>
-          Generated automatically by FireArena AI
+          Generated automatically by YCT PointMaker AI
         </div>
-        <div style={{ color: theme.footerMuted }}>firearena.app</div>
+        <div style={{ color: theme.footerMuted }}>yct-pointmaker.app</div>
       </div>
     </div>
   );

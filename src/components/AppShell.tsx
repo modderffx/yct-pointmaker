@@ -34,7 +34,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Flame className="w-5 h-5" />
           </div>
           <div>
-            <div className="font-display font-bold text-lg leading-none">FireArena</div>
+            <div className="font-display font-bold text-lg leading-none">YCT PointMaker</div>
             <div className="text-[10px] uppercase tracking-widest text-gold">Esports</div>
           </div>
         </Link>
@@ -61,7 +61,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className="flex items-center justify-between px-4 h-14">
           <Link to="/home" className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-md bg-gradient-gold flex items-center justify-center"><Flame className="w-4 h-4" /></div>
-            <span className="font-display font-bold">FireArena</span>
+            <span className="font-display font-bold">YCT PointMaker</span>
           </Link>
           <button onClick={handleSignOut} className="text-muted-foreground"><LogOut className="w-4 h-4" /></button>
         </div>

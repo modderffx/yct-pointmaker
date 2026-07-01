@@ -9,7 +9,7 @@ import { Flame } from "lucide-react";
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
-  head: () => ({ meta: [{ title: "Sign in — FireArena" }] }),
+  head: () => ({ meta: [{ title: "Sign in — YCT PointMaker" }] }),
   component: AuthPage,
 });
 
@@ -56,7 +56,7 @@ function AuthPage() {
           <div className="w-14 h-14 rounded-xl bg-gradient-gold flex items-center justify-center shadow-glow">
             <Flame className="w-7 h-7" />
           </div>
-          <h1 className="mt-4 text-3xl font-display font-bold text-gold">FireArena</h1>
+          <h1 className="mt-4 text-3xl font-display font-bold text-gold">YCT PointMaker</h1>
           <p className="text-sm text-muted-foreground">Free Fire Tournament Manager</p>
         </div>
         <div className="bg-card border border-border rounded-xl p-6 shadow-glow">

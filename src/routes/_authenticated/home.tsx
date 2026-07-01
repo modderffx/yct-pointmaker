@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Upload, Users, Trophy, Flame } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/home")({
-  head: () => ({ meta: [{ title: "Dashboard — FireArena" }] }),
+  head: () => ({ meta: [{ title: "Dashboard — YCT PointMaker" }] }),
   component: HomePage,
 });
 
