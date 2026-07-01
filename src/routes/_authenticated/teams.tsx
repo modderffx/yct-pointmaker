@@ -11,7 +11,7 @@ import { toast } from "sonner";
 import { uploadTeamLogo, getLogoUrl } from "@/lib/teams";
 
 export const Route = createFileRoute("/_authenticated/teams")({
-  head: () => ({ meta: [{ title: "Teams — FireArena" }] }),
+  head: () => ({ meta: [{ title: "Teams — YCT PointMaker" }] }),
   component: TeamsPage,
 });
 

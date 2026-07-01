@@ -10,7 +10,7 @@ import { DEFAULT_PLACEMENT, type PlacementMap } from "@/lib/scoring";
 import { RotateCcw } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/settings")({
-  head: () => ({ meta: [{ title: "Settings — FireArena" }] }),
+  head: () => ({ meta: [{ title: "Settings — YCT PointMaker" }] }),
   component: SettingsPage,
 });
 

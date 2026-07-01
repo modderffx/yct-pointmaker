@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { THEMES, THEME_LIST, type ExportTheme, type ThemeKey } from "@/lib/standings-themes";
 
 export const Route = createFileRoute("/_authenticated/standings")({
-  head: () => ({ meta: [{ title: "Standings — FireArena" }] }),
+  head: () => ({ meta: [{ title: "Standings — YCT PointMaker" }] }),
   component: StandingsPage,
 });
 
@@ -315,9 +315,9 @@ const ExportCard = ({ ref, rows, theme }: { ref: React.Ref<HTMLDivElement>; rows
         }}
       >
         <div style={{ textTransform: "uppercase", fontWeight: 700, color: theme.footerText }}>
-          Generated automatically by FireArena AI
+          Generated automatically by YCT PointMaker AI
         </div>
-        <div style={{ color: theme.footerMuted }}>firearena.app</div>
+        <div style={{ color: theme.footerMuted }}>yct-pointmaker.app</div>
       </div>
     </div>
   );

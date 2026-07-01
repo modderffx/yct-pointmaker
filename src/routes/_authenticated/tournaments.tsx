@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { SERIES_MAPS, type SeriesType } from "@/lib/tournaments";
 
 export const Route = createFileRoute("/_authenticated/tournaments")({
-  head: () => ({ meta: [{ title: "Tournaments — FireArena" }] }),
+  head: () => ({ meta: [{ title: "Tournaments — YCT PointMaker" }] }),
   component: TournamentsPage,
 });
 
