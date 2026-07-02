@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Upload, Sparkles, X, Plus, Check, Trophy, Map as MapIcon, ArrowLeft } from "lucide-react";
+import { Upload, Sparkles, X, Plus, Check, Trophy, Map as MapIcon, ArrowLeft, Users, ChevronDown, ChevronUp, RotateCcw, Crosshair } from "lucide-react";
 import { toast } from "sonner";
 import { extractMatchFromScreenshots } from "@/lib/ocr.functions";
 import { useServerFn } from "@tanstack/react-start";
