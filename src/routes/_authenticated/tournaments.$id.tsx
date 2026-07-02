@@ -347,6 +347,15 @@ function TournamentDetailPage() {
                     <MapIcon className="w-3 h-3" /> {s.map}
                   </div>
                 </div>
+                {s.done && (
+                  <button
+                    onClick={() => handleRedo(s.number)}
+                    title={`Re-open Match ${s.number} to fix mistakes`}
+                    className="ml-1 rounded-md border border-border/60 bg-background/60 hover:bg-background hover:border-gold/60 hover:text-gold px-1.5 py-1 text-[10px] font-medium inline-flex items-center gap-1 transition"
+                  >
+                    <RotateCcw className="w-3 h-3" /> Redo
+                  </button>
+                )}
               </div>
               {i < steps.length - 1 && <div className="w-6 h-px bg-border" />}
             </div>
