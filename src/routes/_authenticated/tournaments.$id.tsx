@@ -260,6 +260,23 @@ function TournamentDetailPage() {
     }
   }
 
+  async function handleRedo(matchNumber: number) {
+    const m = (matches.data ?? []).find(x => x.match_number === matchNumber);
+    if (!m) return;
+    if (!confirm(`Re-open Match ${matchNumber} (${m.map_name ?? ""})? This deletes its saved results so you can re-upload.`)) return;
+    try {
+      const { error: rErr } = await supabase.from("match_results").delete().eq("match_id", m.id);
+      if (rErr) throw rErr;
+      const { error: mErr } = await supabase.from("matches").delete().eq("id", m.id);
+      if (mErr) throw mErr;
+      toast.success(`Match ${matchNumber} reopened — upload again to fix mistakes.`);
+      resetStep();
+      qc.invalidateQueries();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to reopen match");
+    }
+  }
+
   // Aggregate standings for this tournament
   const standings = useMemo(() => {
     type Row = { team_id: string | null; team_name: string; matches: number; kills: number; placement_points: number; total: number; wins: number };
