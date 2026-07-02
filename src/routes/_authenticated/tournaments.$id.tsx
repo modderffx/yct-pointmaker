@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Upload, Sparkles, X, Plus, Check, Trophy, Map as MapIcon, ArrowLeft } from "lucide-react";
+import { Upload, Sparkles, X, Plus, Check, Trophy, Map as MapIcon, ArrowLeft, Users, ChevronDown, ChevronUp, RotateCcw, Crosshair } from "lucide-react";
 import { toast } from "sonner";
 import { extractMatchFromScreenshots } from "@/lib/ocr.functions";
 import { useServerFn } from "@tanstack/react-start";
@@ -260,6 +260,23 @@ function TournamentDetailPage() {
     }
   }
 
+  async function handleRedo(matchNumber: number) {
+    const m = (matches.data ?? []).find(x => x.match_number === matchNumber);
+    if (!m) return;
+    if (!confirm(`Re-open Match ${matchNumber} (${m.map_name ?? ""})? This deletes its saved results so you can re-upload.`)) return;
+    try {
+      const { error: rErr } = await supabase.from("match_results").delete().eq("match_id", m.id);
+      if (rErr) throw rErr;
+      const { error: mErr } = await supabase.from("matches").delete().eq("id", m.id);
+      if (mErr) throw mErr;
+      toast.success(`Match ${matchNumber} reopened — upload again to fix mistakes.`);
+      resetStep();
+      qc.invalidateQueries();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to reopen match");
+    }
+  }
+
   // Aggregate standings for this tournament
   const standings = useMemo(() => {
     type Row = { team_id: string | null; team_name: string; matches: number; kills: number; placement_points: number; total: number; wins: number };
@@ -330,6 +347,15 @@ function TournamentDetailPage() {
                     <MapIcon className="w-3 h-3" /> {s.map}
                   </div>
                 </div>
+                {s.done && (
+                  <button
+                    onClick={() => handleRedo(s.number)}
+                    title={`Re-open Match ${s.number} to fix mistakes`}
+                    className="ml-1 rounded-md border border-border/60 bg-background/60 hover:bg-background hover:border-gold/60 hover:text-gold px-1.5 py-1 text-[10px] font-medium inline-flex items-center gap-1 transition"
+                  >
+                    <RotateCcw className="w-3 h-3" /> Redo
+                  </button>
+                )}
               </div>
               {i < steps.length - 1 && <div className="w-6 h-px bg-border" />}
             </div>
@@ -447,6 +473,8 @@ function ExtractedReview({
   onSave: () => void;
   onReset: () => void;
 }) {
+  const [openPlayers, setOpenPlayers] = useState<Record<number, boolean>>({});
+  const togglePlayers = (i: number) => setOpenPlayers(p => ({ ...p, [i]: !p[i] }));
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -459,6 +487,7 @@ function ExtractedReview({
           const update = (patch: Partial<ExtractedTeam>) => {
             const next = [...teams]; next[i] = { ...next[i], ...patch }; setTeams(next);
           };
+          const isOpen = openPlayers[i] ?? false;
           return (
             <div key={i} className="rounded-xl border border-border bg-background p-4">
               <div className="flex items-start gap-4">
@@ -468,8 +497,33 @@ function ExtractedReview({
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
                     <div className="font-display font-bold text-lg truncate">{t.team_name}</div>
-                    <div className="text-xs text-muted-foreground">{t.players.length} players · {t.totalKills} kills</div>
+                    <button
+                      type="button"
+                      onClick={() => togglePlayers(i)}
+                      className="text-xs text-muted-foreground hover:text-gold inline-flex items-center gap-1 rounded-md border border-border/60 px-2 py-0.5 bg-muted/40 transition"
+                      title="Show players"
+                    >
+                      <Users className="w-3.5 h-3.5 text-gold" />
+                      {t.players.length} players · {t.totalKills} kills
+                      {isOpen ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                    </button>
                   </div>
+                  {isOpen && (
+                    <div className="mt-2 rounded-lg border border-border bg-muted/30 p-3 space-y-1.5">
+                      {t.players.length === 0 && <div className="text-xs text-muted-foreground">No player names read.</div>}
+                      {t.players.map((name, idx) => (
+                        <div key={idx} className="flex items-center justify-between text-sm">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="w-5 h-5 rounded-md bg-background border border-border text-[10px] font-semibold flex items-center justify-center shrink-0">{idx + 1}</span>
+                            <span className="truncate">{name || <span className="text-muted-foreground italic">unknown</span>}</span>
+                          </div>
+                          <span className="inline-flex items-center gap-1 text-xs font-semibold text-gold">
+                            <Crosshair className="w-3 h-3" /> {t.kills[idx] ?? 0}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                   <div className="mt-2 grid grid-cols-3 gap-3 text-sm">
                     <div className="bg-muted rounded-md px-3 py-2">
                       <div className="text-[10px] uppercase text-muted-foreground">Placement</div>
@@ -484,6 +538,7 @@ function ExtractedReview({
                       <div className="font-semibold text-gold">{pts.total_points}</div>
                     </div>
                   </div>
+
 
                   <div className="mt-3">
                     {t.matched_team_id ? (
