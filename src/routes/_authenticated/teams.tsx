@@ -215,3 +215,48 @@ function EditTeamDialog({ open, onOpenChange, team, onSaved }: { open: boolean; 
   );
 }
 
+
+function CreateTeamDialog({ userId, onCreated }: { userId: string; onCreated: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [file, setFile] = useState<File | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  async function save() {
+    if (!name.trim()) return;
+    setBusy(true);
+    try {
+      let logoPath: string | null = null;
+      if (file) logoPath = await uploadTeamLogo(userId, file);
+      const { error } = await supabase.from("teams").insert({ user_id: userId, name: name.trim(), logo_url: logoPath });
+      if (error) throw error;
+      toast.success("Team added");
+      setName(""); setFile(null); setOpen(false); onCreated();
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Failed"); }
+    finally { setBusy(false); }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button className="bg-gradient-gold text-gold-foreground font-semibold"><Plus className="w-4 h-4 mr-1" /> Add Team</Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader><DialogTitle>Register a team</DialogTitle></DialogHeader>
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="tn">Full team name</Label>
+            <Input id="tn" value={name} onChange={e => setName(e.target.value)} placeholder="Total Gaming Esports" />
+          </div>
+          <div>
+            <Label>Team logo</Label>
+            <input type="file" accept="image/*" onChange={e => setFile(e.target.files?.[0] ?? null)} className="block text-sm mt-1" />
+          </div>
+          <Button onClick={save} disabled={busy} className="w-full bg-gradient-gold text-gold-foreground font-semibold">
+            {busy ? "Saving…" : "Save team"}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
