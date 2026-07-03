@@ -156,3 +156,4 @@ export const extractMatchFromScreenshots = createServerFn({ method: "POST" })
 
     const deduped = Array.from(merged.values()).sort((a, b) => a.position - b.position);
     return { teams: deduped };
+  });
