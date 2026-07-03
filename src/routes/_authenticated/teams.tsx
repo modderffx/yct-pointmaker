@@ -72,49 +72,51 @@ function TeamCard({ team, onDelete, onSaved }: { team: Team; onDelete: () => voi
   const [logo, setLogo] = useState<string | null>(null);
   const [editOpen, setEditOpen] = useState(false);
   useEffect(() => { getLogoUrl(team.logo_url).then(setLogo); }, [team.logo_url]);
+  const aliases = team.aliases ?? [];
+  const players = team.players ?? [];
   return (
-    <div className="rounded-xl border border-border bg-card p-5 group hover:border-gold/40 transition">
+    <div className="rounded-xl border border-border bg-card p-5 hover:border-gold/40 transition">
       <div className="flex items-start gap-3">
         <div className="w-14 h-14 rounded-lg bg-muted border border-border overflow-hidden flex items-center justify-center shrink-0">
           {logo ? <img src={logo} alt={team.name} className="w-full h-full object-cover" /> : <Shield className="w-6 h-6 text-gold" />}
         </div>
         <div className="flex-1 min-w-0">
           <div className="font-display font-bold truncate">{team.name}</div>
-          {team.aliases.length > 0 && (
-            <div className="text-xs text-muted-foreground truncate">a.k.a. {team.aliases.join(", ")}</div>
+          {aliases.length > 0 && (
+            <div className="text-xs text-muted-foreground truncate">a.k.a. {aliases.join(", ")}</div>
           )}
           <div className="mt-1 text-xs text-muted-foreground inline-flex items-center gap-1">
-            <Users className="w-3 h-3 text-gold" /> {team.players?.length ?? 0} players
+            <Users className="w-3 h-3 text-gold" /> {players.length} players
           </div>
         </div>
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
+        <div className="flex items-center gap-1">
           <button
             onClick={() => setEditOpen(true)}
             title="Edit team"
-            className="text-muted-foreground hover:text-gold p-1"
+            className="rounded-md border border-gold/40 bg-gold/10 text-gold hover:bg-gold hover:text-gold-foreground p-1.5 transition"
           >
             <Pencil className="w-4 h-4" />
           </button>
           <button
             onClick={onDelete}
             title="Delete team"
-            className="text-muted-foreground hover:text-destructive p-1"
+            className="rounded-md border border-gold/40 bg-gold/10 text-gold hover:bg-destructive hover:border-destructive hover:text-destructive-foreground p-1.5 transition"
           >
             <Trash2 className="w-4 h-4" />
           </button>
         </div>
       </div>
 
-      {team.players?.length > 0 && (
+      {players.length > 0 && (
         <div className="mt-3 flex flex-wrap gap-1.5">
-          {team.players.slice(0, 6).map((p, i) => (
+          {players.slice(0, 6).map((p, i) => (
             <span key={i} className="text-[11px] px-2 py-0.5 rounded-md bg-muted border border-border text-foreground/80">
               {p}
             </span>
           ))}
-          {team.players.length > 6 && (
+          {players.length > 6 && (
             <span className="text-[11px] px-2 py-0.5 rounded-md bg-muted border border-border text-muted-foreground">
-              +{team.players.length - 6}
+              +{players.length - 6}
             </span>
           )}
         </div>
