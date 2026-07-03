@@ -102,7 +102,58 @@ export const extractMatchFromScreenshots = createServerFn({ method: "POST" })
       const kills = players.map((_, i) => t.kills[i] ?? 0);
       const totalKills = t.totalKills || kills.reduce((a, b) => a + b, 0);
       return { ...t, players, kills, totalKills };
-    }).sort((a, b) => a.position - b.position);
+    });
 
-    return { teams };
+    // Dedupe: same team can appear in multiple screenshots. Merge by normalized
+    // team_name (falling back to a player-overlap signature) so we never emit
+    // two entries for one squad.
+    const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "");
+    const playerKey = (s: string) => {
+      const parts = s.trim().split(/\s+/);
+      if (parts.length > 1 && parts[0].length <= 5) parts.shift();
+      return norm(parts.join(""));
+    };
+    const merged = new Map<string, typeof teams[number]>();
+    for (const t of teams) {
+      const nameKey = norm(t.team_name);
+      let key = nameKey;
+      if (!key) {
+        // no team tag — try to find an existing group sharing 2+ players
+        const incoming = new Set(t.players.map(playerKey).filter(Boolean));
+        for (const [k, existing] of merged) {
+          const roster = new Set(existing.players.map(playerKey).filter(Boolean));
+          let overlap = 0;
+          for (const p of incoming) if (roster.has(p)) overlap++;
+          if (overlap >= 2) { key = k; break; }
+        }
+        if (!key) key = `pos:${t.position}:${t.players[0] ?? ""}`;
+      }
+      const prev = merged.get(key);
+      if (!prev) { merged.set(key, t); continue; }
+      // merge into prev: keep best (lowest) position, union players+kills, sum totalKills sensibly
+      const seen = new Map<string, { name: string; kills: number }>();
+      for (let i = 0; i < prev.players.length; i++) {
+        const k = playerKey(prev.players[i]);
+        if (k) seen.set(k, { name: prev.players[i], kills: prev.kills[i] ?? 0 });
+      }
+      for (let i = 0; i < t.players.length; i++) {
+        const k = playerKey(t.players[i]);
+        if (!k) continue;
+        const existing = seen.get(k);
+        const kills = t.kills[i] ?? 0;
+        if (existing) existing.kills = Math.max(existing.kills, kills);
+        else seen.set(k, { name: t.players[i], kills });
+      }
+      const mergedPlayers = Array.from(seen.values());
+      merged.set(key, {
+        position: Math.min(prev.position, t.position),
+        team_name: prev.team_name || t.team_name,
+        players: mergedPlayers.map(p => p.name),
+        kills: mergedPlayers.map(p => p.kills),
+        totalKills: Math.max(prev.totalKills, t.totalKills, mergedPlayers.reduce((a, b) => a + b.kills, 0)),
+      });
+    }
+
+    const deduped = Array.from(merged.values()).sort((a, b) => a.position - b.position);
+    return { teams: deduped };
   });
