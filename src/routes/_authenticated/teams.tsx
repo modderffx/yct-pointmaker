@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
-import { Plus, Trash2, Shield, Pencil, X, Users } from "lucide-react";
+import { Plus, Trash2, Shield, Pencil, X, Users, GitMerge, CheckSquare, Square } from "lucide-react";
 import { toast } from "sonner";
 import { uploadTeamLogo, getLogoUrl } from "@/lib/teams";
+import { mergePlayers } from "@/lib/scoring";
 
 type Team = {
   id: string;
@@ -27,6 +28,9 @@ export const Route = createFileRoute("/_authenticated/teams")({
 function TeamsPage() {
   const qc = useQueryClient();
   const [userId, setUserId] = useState("");
+  const [selectMode, setSelectMode] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [mergeOpen, setMergeOpen] = useState(false);
   useEffect(() => { supabase.auth.getUser().then(({data}) => setUserId(data.user?.id ?? "")); }, []);
 
   const teams = useQuery({
@@ -40,20 +44,58 @@ function TeamsPage() {
     if (error) toast.error(error.message); else { toast.success("Team deleted"); qc.invalidateQueries(); }
   }
 
+  function toggleSelect(id: string) {
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+  function exitSelect() { setSelectMode(false); setSelected(new Set()); }
+
+  const selectedTeams = (teams.data ?? []).filter(t => selected.has(t.id)) as Team[];
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-3xl font-display font-bold">Teams</h1>
           <p className="text-muted-foreground">Registered squads. Future matches recognize them automatically.</p>
         </div>
-        <CreateTeamDialog userId={userId} onCreated={() => qc.invalidateQueries({ queryKey: ["teams"] })} />
+        <div className="flex items-center gap-2">
+          {selectMode ? (
+            <>
+              <span className="text-sm text-muted-foreground">{selected.size} selected</span>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  if (selected.size < 2) { toast.error("Select at least 2 teams to merge"); return; }
+                  setMergeOpen(true);
+                }}
+                className="border-gold/50 text-gold hover:bg-gold hover:text-gold-foreground"
+              >
+                <GitMerge className="w-4 h-4 mr-1" /> Merge…
+              </Button>
+              <Button variant="ghost" onClick={exitSelect}>Cancel</Button>
+            </>
+          ) : (
+            <>
+              <Button variant="outline" onClick={() => setSelectMode(true)}>
+                <GitMerge className="w-4 h-4 mr-1" /> Merge duplicates
+              </Button>
+              <CreateTeamDialog userId={userId} onCreated={() => qc.invalidateQueries({ queryKey: ["teams"] })} />
+            </>
+          )}
+        </div>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {teams.data?.map(t => (
           <TeamCard
             key={t.id}
             team={t as Team}
+            selectMode={selectMode}
+            selected={selected.has(t.id)}
+            onToggleSelect={() => toggleSelect(t.id)}
             onDelete={() => handleDelete(t.id)}
             onSaved={() => qc.invalidateQueries({ queryKey: ["teams"] })}
           />
@@ -64,9 +106,100 @@ function TeamsPage() {
           </div>
         )}
       </div>
+      <MergeDialog
+        open={mergeOpen}
+        onOpenChange={setMergeOpen}
+        teams={selectedTeams}
+        onMerged={() => { exitSelect(); qc.invalidateQueries(); }}
+      />
     </div>
   );
 }
+
+function MergeDialog({ open, onOpenChange, teams, onMerged }: {
+  open: boolean; onOpenChange: (v: boolean) => void; teams: Team[]; onMerged: () => void;
+}) {
+  const [primaryId, setPrimaryId] = useState<string>("");
+  const [busy, setBusy] = useState(false);
+  useEffect(() => { if (open && teams[0]) setPrimaryId(teams[0].id); }, [open, teams]);
+
+  async function doMerge() {
+    if (!primaryId) return;
+    const primary = teams.find(t => t.id === primaryId);
+    if (!primary) return;
+    const others = teams.filter(t => t.id !== primaryId);
+    if (others.length === 0) return;
+    setBusy(true);
+    try {
+      // Merge players + aliases (add each secondary's name as alias)
+      let mergedPlayers = primary.players ?? [];
+      let mergedAliases = primary.aliases ?? [];
+      for (const o of others) {
+        mergedPlayers = mergePlayers(mergedPlayers, o.players ?? []);
+        mergedAliases = mergePlayers(mergedAliases, [...(o.aliases ?? []), o.name, o.short_name ?? ""].filter(Boolean));
+      }
+      // Repoint match_results
+      const otherIds = others.map(o => o.id);
+      const { error: rErr } = await supabase.from("match_results")
+        .update({ team_id: primary.id })
+        .in("team_id", otherIds);
+      if (rErr) throw rErr;
+      // Update primary
+      const { error: uErr } = await supabase.from("teams")
+        .update({ players: mergedPlayers, aliases: mergedAliases })
+        .eq("id", primary.id);
+      if (uErr) throw uErr;
+      // Delete secondaries
+      const { error: dErr } = await supabase.from("teams").delete().in("id", otherIds);
+      if (dErr) throw dErr;
+      toast.success(`Merged ${others.length} team${others.length > 1 ? "s" : ""} into ${primary.name}`);
+      onOpenChange(false);
+      onMerged();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Merge failed");
+    } finally { setBusy(false); }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader><DialogTitle>Merge {teams.length} teams</DialogTitle></DialogHeader>
+        <div className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            Choose the team to keep. Others will be deleted; their players, aliases, and match results move onto the primary.
+          </p>
+          <div className="space-y-2 max-h-[50vh] overflow-y-auto">
+            {teams.map(t => (
+              <label key={t.id} className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition ${primaryId === t.id ? "border-gold bg-gold/10" : "border-border hover:border-gold/50"}`}>
+                <input
+                  type="radio" name="primary" value={t.id}
+                  checked={primaryId === t.id}
+                  onChange={() => setPrimaryId(t.id)}
+                  className="accent-gold"
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="font-display font-bold truncate">{t.name}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {(t.players ?? []).length} players · {(t.aliases ?? []).length} aliases
+                  </div>
+                </div>
+                {primaryId === t.id && <span className="text-xs text-gold font-semibold">KEEP</span>}
+              </label>
+            ))}
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>Cancel</Button>
+          <Button onClick={doMerge} disabled={busy || !primaryId} className="bg-gradient-gold text-gold-foreground font-semibold">
+            {busy ? "Merging…" : <><GitMerge className="w-4 h-4 mr-1" /> Merge teams</>}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+
 
 function TeamCard({ team, onDelete, onSaved }: { team: Team; onDelete: () => void; onSaved: () => void }) {
   const [logo, setLogo] = useState<string | null>(null);
