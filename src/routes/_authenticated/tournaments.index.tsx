@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Trophy, Plus, Map as MapIcon, Users, X } from "lucide-react";
+import { Trophy, Plus, Map as MapIcon, Users } from "lucide-react";
 import { toast } from "sonner";
 import { SERIES_MAPS, type SeriesType } from "@/lib/tournaments";
 
