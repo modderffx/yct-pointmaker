@@ -137,7 +137,12 @@ function TournamentDetailPage() {
         toast.error("Couldn't read any teams. Try clearer screenshots.");
         return;
       }
-      const list = teams.data ?? [];
+      const allTeams = teams.data ?? [];
+      const participants = (tournament.data?.participants ?? []) as Array<{ team_id?: string }>;
+      const participantIds = new Set(participants.map(p => p.team_id).filter(Boolean) as string[]);
+      const list = participantIds.size > 0
+        ? allTeams.filter(x => participantIds.has(x.id))
+        : allTeams;
       const annotated: ExtractedTeam[] = result.teams
         .sort((a, b) => a.position - b.position)
         .map(t => {
