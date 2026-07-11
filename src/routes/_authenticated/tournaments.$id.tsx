@@ -47,10 +47,10 @@ function TournamentDetailPage() {
     queryKey: ["tournament", id],
     queryFn: async () => {
       const { data, error } = await supabase.from("tournaments")
-        .select("id,name,series_type,total_matches,maps")
+        .select("id,name,series_type,total_matches,maps,participants")
         .eq("id", id).maybeSingle();
       if (error) throw error;
-      return data;
+      return data as (typeof data & { participants?: Array<{ team_id?: string; name: string; short_name?: string }> | null }) | null;
     },
   });
 
@@ -137,7 +137,12 @@ function TournamentDetailPage() {
         toast.error("Couldn't read any teams. Try clearer screenshots.");
         return;
       }
-      const list = teams.data ?? [];
+      const allTeams = teams.data ?? [];
+      const participants = (tournament.data?.participants ?? []) as Array<{ team_id?: string }>;
+      const participantIds = new Set(participants.map(p => p.team_id).filter(Boolean) as string[]);
+      const list = participantIds.size > 0
+        ? allTeams.filter(x => participantIds.has(x.id))
+        : allTeams;
       const annotated: ExtractedTeam[] = result.teams
         .sort((a, b) => a.position - b.position)
         .map(t => {

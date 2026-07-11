@@ -157,6 +157,7 @@ export type Database = {
           id: string
           maps: string[]
           name: string
+          participants: Json
           series_type: string
           total_matches: number
           user_id: string
@@ -166,6 +167,7 @@ export type Database = {
           id?: string
           maps?: string[]
           name: string
+          participants?: Json
           series_type: string
           total_matches: number
           user_id: string
@@ -175,6 +177,7 @@ export type Database = {
           id?: string
           maps?: string[]
           name?: string
+          participants?: Json
           series_type?: string
           total_matches?: number
           user_id?: string
