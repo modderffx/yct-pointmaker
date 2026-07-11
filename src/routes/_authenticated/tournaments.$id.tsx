@@ -47,10 +47,10 @@ function TournamentDetailPage() {
     queryKey: ["tournament", id],
     queryFn: async () => {
       const { data, error } = await supabase.from("tournaments")
-        .select("id,name,series_type,total_matches,maps")
+        .select("id,name,series_type,total_matches,maps,participants")
         .eq("id", id).maybeSingle();
       if (error) throw error;
-      return data;
+      return data as (typeof data & { participants?: Array<{ team_id?: string; name: string; short_name?: string }> | null }) | null;
     },
   });
 
