@@ -201,20 +201,42 @@ function MergeDialog({ open, onOpenChange, teams, onMerged }: {
 
 
 
-function TeamCard({ team, onDelete, onSaved }: { team: Team; onDelete: () => void; onSaved: () => void }) {
+function TeamCard({ team, selectMode, selected, onToggleSelect, onDelete, onSaved }: {
+  team: Team;
+  selectMode: boolean;
+  selected: boolean;
+  onToggleSelect: () => void;
+  onDelete: () => void;
+  onSaved: () => void;
+}) {
   const [logo, setLogo] = useState<string | null>(null);
   const [editOpen, setEditOpen] = useState(false);
   useEffect(() => { getLogoUrl(team.logo_url).then(setLogo); }, [team.logo_url]);
   const aliases = team.aliases ?? [];
   const players = team.players ?? [];
+  const cardClass = `rounded-xl border bg-card p-5 transition ${
+    selectMode
+      ? selected ? "border-gold ring-2 ring-gold/40 cursor-pointer" : "border-border hover:border-gold/50 cursor-pointer"
+      : "border-border hover:border-gold/40"
+  }`;
   return (
-    <div className="rounded-xl border border-border bg-card p-5 hover:border-gold/40 transition">
+    <div className={cardClass} onClick={selectMode ? onToggleSelect : undefined}>
       <div className="flex items-start gap-3">
+        {selectMode && (
+          <div className="pt-1">
+            {selected
+              ? <CheckSquare className="w-5 h-5 text-gold" />
+              : <Square className="w-5 h-5 text-muted-foreground" />}
+          </div>
+        )}
         <div className="w-14 h-14 rounded-lg bg-muted border border-border overflow-hidden flex items-center justify-center shrink-0">
           {logo ? <img src={logo} alt={team.name} className="w-full h-full object-cover" /> : <Shield className="w-6 h-6 text-gold" />}
         </div>
         <div className="flex-1 min-w-0">
-          <div className="font-display font-bold truncate">{team.name}</div>
+          <div className="font-display font-bold truncate">
+            {team.name}
+            {team.short_name && <span className="ml-2 text-xs font-semibold text-gold bg-gold/10 border border-gold/30 rounded px-1.5 py-0.5">{team.short_name}</span>}
+          </div>
           {aliases.length > 0 && (
             <div className="text-xs text-muted-foreground truncate">a.k.a. {aliases.join(", ")}</div>
           )}
@@ -222,23 +244,26 @@ function TeamCard({ team, onDelete, onSaved }: { team: Team; onDelete: () => voi
             <Users className="w-3 h-3 text-gold" /> {players.length} players
           </div>
         </div>
-        <div className="flex items-center gap-1">
-          <button
-            onClick={() => setEditOpen(true)}
-            title="Edit team"
-            className="rounded-md border border-gold/40 bg-gold/10 text-gold hover:bg-gold hover:text-gold-foreground p-1.5 transition"
-          >
-            <Pencil className="w-4 h-4" />
-          </button>
-          <button
-            onClick={onDelete}
-            title="Delete team"
-            className="rounded-md border border-gold/40 bg-gold/10 text-gold hover:bg-destructive hover:border-destructive hover:text-destructive-foreground p-1.5 transition"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
-        </div>
+        {!selectMode && (
+          <div className="flex items-center gap-1">
+            <button
+              onClick={(e) => { e.stopPropagation(); setEditOpen(true); }}
+              title="Edit team"
+              className="rounded-md border border-gold/40 bg-gold/10 text-gold hover:bg-gold hover:text-gold-foreground p-1.5 transition"
+            >
+              <Pencil className="w-4 h-4" />
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); onDelete(); }}
+              title="Delete team"
+              className="rounded-md border border-gold/40 bg-gold/10 text-gold hover:bg-destructive hover:border-destructive hover:text-destructive-foreground p-1.5 transition"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
+        )}
       </div>
+
 
       {players.length > 0 && (
         <div className="mt-3 flex flex-wrap gap-1.5">
