@@ -1,8 +1,9 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { Flame, Home, Swords, Users, Trophy, Settings as SettingsIcon, LogOut, Grid3x3, MoreVertical } from "lucide-react";
+import { Flame, Home, Swords, Users, Trophy, Settings as SettingsIcon, LogOut, Grid3x3, MoreVertical, Rocket } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
-import type { ReactNode } from "react";
+import { useState, useEffect, type ReactNode } from "react";
+import freeFireLogo from "@/assets/free-fire-logo.png.asset.json";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,16 +25,62 @@ const moreNav = [
   { to: "/settings", label: "Settings", icon: SettingsIcon },
 ] as const;
 
+type Workspace = "freefire" | "others";
+const WORKSPACE_KEY = "yct.workspace";
+
 export function AppShell({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const pathname = useRouterState({ select: s => s.location.pathname });
+  const [workspace, setWorkspace] = useState<Workspace>("freefire");
+
+  useEffect(() => {
+    const saved = localStorage.getItem(WORKSPACE_KEY);
+    if (saved === "others" || saved === "freefire") setWorkspace(saved);
+  }, []);
+
+  function selectWorkspace(next: Workspace) {
+    setWorkspace(next);
+    localStorage.setItem(WORKSPACE_KEY, next);
+    if (next === "freefire" && pathname === "/") navigate({ to: "/home" });
+  }
 
   async function handleSignOut() {
     await queryClient.cancelQueries();
     queryClient.clear();
     await supabase.auth.signOut();
     navigate({ to: "/auth", replace: true });
+  }
+
+  function WorkspaceTabs({ className = "" }: { className?: string }) {
+    return (
+      <div className={`inline-flex items-center gap-1 rounded-lg border border-border bg-card/60 p-1 ${className}`}>
+        <button
+          type="button"
+          onClick={() => selectWorkspace("freefire")}
+          aria-pressed={workspace === "freefire"}
+          className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-semibold transition ${
+            workspace === "freefire"
+              ? "bg-gradient-gold text-gold-foreground shadow-glow"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <img src={freeFireLogo.url} alt="Free Fire" className="h-4 w-auto" />
+        </button>
+        <button
+          type="button"
+          onClick={() => selectWorkspace("others")}
+          aria-pressed={workspace === "others"}
+          className={`px-3 py-1.5 rounded-md text-xs font-semibold uppercase tracking-wider transition ${
+            workspace === "others"
+              ? "bg-gradient-gold text-gold-foreground shadow-glow"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          Others
+        </button>
+      </div>
+    );
   }
 
   function MoreMenu({ className = "" }: { className?: string }) {
@@ -67,10 +114,12 @@ export function AppShell({ children }: { children: ReactNode }) {
     );
   }
 
+  const showFreeFire = workspace === "freefire";
+
   return (
     <div className="min-h-screen bg-surface flex">
       <aside className="hidden md:flex w-60 flex-col border-r border-border bg-card/40 backdrop-blur p-4">
-        <div className="flex items-center justify-between mb-8 px-2">
+        <div className="flex items-center justify-between mb-6 px-2">
           <Link to="/home" className="flex items-center gap-2">
             <div className="w-9 h-9 rounded-lg bg-gradient-gold flex items-center justify-center">
               <Flame className="w-5 h-5" />
@@ -82,19 +131,24 @@ export function AppShell({ children }: { children: ReactNode }) {
           </Link>
           <MoreMenu />
         </div>
-        <nav className="flex-1 space-y-1">
-          {nav.map(item => {
-            const active = pathname === item.to;
-            const Icon = item.icon;
-            return (
-              <Link key={item.to} to={item.to}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition ${active ? "bg-gold/15 text-gold border border-gold/30" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>
-                <Icon className="w-4 h-4" />
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
+        <div className="px-2 mb-4">
+          <WorkspaceTabs className="w-full justify-between" />
+        </div>
+        {showFreeFire && (
+          <nav className="flex-1 space-y-1">
+            {nav.map(item => {
+              const active = pathname === item.to;
+              const Icon = item.icon;
+              return (
+                <Link key={item.to} to={item.to}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition ${active ? "bg-gold/15 text-gold border border-gold/30" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>
+                  <Icon className="w-4 h-4" />
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
+        )}
       </aside>
 
       {/* mobile top bar */}
@@ -106,23 +160,48 @@ export function AppShell({ children }: { children: ReactNode }) {
           </Link>
           <MoreMenu />
         </div>
+        <div className="px-4 pb-2 flex justify-center">
+          <WorkspaceTabs />
+        </div>
       </div>
-      <nav className="md:hidden fixed bottom-0 inset-x-0 z-30 bg-card/95 backdrop-blur border-t border-border flex">
-        {nav.map(item => {
-          const active = pathname === item.to;
-          const Icon = item.icon;
-          return (
-            <Link key={item.to} to={item.to} className={`flex-1 flex flex-col items-center justify-center py-2 text-[10px] ${active ? "text-gold" : "text-muted-foreground"}`}>
-              <Icon className="w-5 h-5 mb-0.5" />
-              {item.label.split(" ")[0]}
-            </Link>
-          );
-        })}
-      </nav>
+      {showFreeFire && (
+        <nav className="md:hidden fixed bottom-0 inset-x-0 z-30 bg-card/95 backdrop-blur border-t border-border flex">
+          {nav.map(item => {
+            const active = pathname === item.to;
+            const Icon = item.icon;
+            return (
+              <Link key={item.to} to={item.to} className={`flex-1 flex flex-col items-center justify-center py-2 text-[10px] ${active ? "text-gold" : "text-muted-foreground"}`}>
+                <Icon className="w-5 h-5 mb-0.5" />
+                {item.label.split(" ")[0]}
+              </Link>
+            );
+          })}
+        </nav>
+      )}
 
-      <main className="flex-1 min-w-0 pt-14 pb-20 md:pt-0 md:pb-0">
-        <div className="max-w-6xl mx-auto p-4 md:p-8">{children}</div>
+      <main className="flex-1 min-w-0 pt-24 pb-20 md:pt-0 md:pb-0">
+        <div className="max-w-6xl mx-auto p-4 md:p-8">
+          {showFreeFire ? children : <ComingSoon />}
+        </div>
       </main>
+    </div>
+  );
+}
+
+function ComingSoon() {
+  return (
+    <div className="min-h-[60vh] flex items-center justify-center">
+      <div className="text-center max-w-md">
+        <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-gold flex items-center justify-center mb-6 shadow-glow">
+          <Rocket className="w-8 h-8 text-gold-foreground" />
+        </div>
+        <div className="text-xs uppercase tracking-widest text-gold mb-2">Other Games</div>
+        <h1 className="text-3xl md:text-4xl font-display font-bold mb-3">Coming Soon</h1>
+        <p className="text-muted-foreground">
+          Support for games like <span className="text-foreground font-medium">Call of Duty</span> and{" "}
+          <span className="text-foreground font-medium">PUBG</span> is on the way. Stay tuned — the arena is expanding.
+        </p>
+      </div>
     </div>
   );
 }
