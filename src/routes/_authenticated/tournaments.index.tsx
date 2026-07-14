@@ -27,6 +27,36 @@ function TournamentsPage() {
     Array.from({ length: 12 }, () => ({ name: "", short_name: "" }))
   );
   const [creating, setCreating] = useState(false);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+
+  function toggleSel(id: string) {
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+  function exitSelect() { setSelectMode(false); setSelected(new Set()); }
+
+  async function deleteTournaments(ids: string[]) {
+    if (ids.length === 0) return;
+    const label = ids.length === 1 ? "this tournament" : `${ids.length} tournaments`;
+    if (!confirm(`Delete ${label}? All match uploads for ${ids.length === 1 ? "it" : "them"} will also be removed.`)) return;
+    try {
+      await supabase.from("match_results").delete().in("match_id",
+        (await supabase.from("matches").select("id").in("tournament_id", ids)).data?.map(m => m.id) ?? []
+      );
+      await supabase.from("matches").delete().in("tournament_id", ids);
+      const { error } = await supabase.from("tournaments").delete().in("id", ids);
+      if (error) throw error;
+      toast.success(`Deleted ${ids.length} tournament${ids.length > 1 ? "s" : ""}`);
+      exitSelect();
+      qc.invalidateQueries();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Delete failed");
+    }
+  }
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? ""));
