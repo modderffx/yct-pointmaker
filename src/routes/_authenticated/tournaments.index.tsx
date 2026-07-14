@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Trophy, Plus, Map as MapIcon, Users } from "lucide-react";
+import { Trophy, Plus, Map as MapIcon, Users, Trash2, CheckSquare, Square, X } from "lucide-react";
 import { toast } from "sonner";
 import { SERIES_MAPS, type SeriesType } from "@/lib/tournaments";
 
@@ -27,6 +27,36 @@ function TournamentsPage() {
     Array.from({ length: 12 }, () => ({ name: "", short_name: "" }))
   );
   const [creating, setCreating] = useState(false);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+
+  function toggleSel(id: string) {
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+  function exitSelect() { setSelectMode(false); setSelected(new Set()); }
+
+  async function deleteTournaments(ids: string[]) {
+    if (ids.length === 0) return;
+    const label = ids.length === 1 ? "this tournament" : `${ids.length} tournaments`;
+    if (!confirm(`Delete ${label}? All match uploads for ${ids.length === 1 ? "it" : "them"} will also be removed.`)) return;
+    try {
+      await supabase.from("match_results").delete().in("match_id",
+        (await supabase.from("matches").select("id").in("tournament_id", ids)).data?.map(m => m.id) ?? []
+      );
+      await supabase.from("matches").delete().in("tournament_id", ids);
+      const { error } = await supabase.from("tournaments").delete().in("id", ids);
+      if (error) throw error;
+      toast.success(`Deleted ${ids.length} tournament${ids.length > 1 ? "s" : ""}`);
+      exitSelect();
+      qc.invalidateQueries();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Delete failed");
+    }
+  }
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? ""));
@@ -230,7 +260,35 @@ function TournamentsPage() {
       </div>
 
       <div className="space-y-3">
-        <h2 className="font-display font-semibold text-lg">Your tournaments</h2>
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <h2 className="font-display font-semibold text-lg">Your tournaments</h2>
+          {(list.data ?? []).length > 0 && (
+            <div className="flex items-center gap-2">
+              {selectMode ? (
+                <>
+                  <span className="text-xs text-muted-foreground">{selected.size} selected</span>
+                  <button
+                    onClick={() => deleteTournaments(Array.from(selected))}
+                    disabled={selected.size === 0}
+                    className="inline-flex items-center gap-1 rounded-md border border-gold bg-black text-gold px-3 py-1.5 text-sm font-semibold hover:bg-gold hover:text-black disabled:opacity-40 disabled:cursor-not-allowed transition"
+                  >
+                    <Trash2 className="w-4 h-4" /> Delete {selected.size || ""}
+                  </button>
+                  <button onClick={exitSelect} className="inline-flex items-center gap-1 rounded-md border border-border px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground">
+                    <X className="w-4 h-4" /> Cancel
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={() => setSelectMode(true)}
+                  className="inline-flex items-center gap-1 rounded-md border border-gold bg-black text-gold px-3 py-1.5 text-sm font-semibold hover:bg-gold hover:text-black transition"
+                >
+                  <Trash2 className="w-4 h-4" /> Select to delete
+                </button>
+              )}
+            </div>
+          )}
+        </div>
         {(list.data ?? []).length === 0 && (
           <div className="rounded-xl border border-border bg-card p-8 text-center text-sm text-muted-foreground">
             No tournaments yet. Create one above to begin.
@@ -242,19 +300,37 @@ function TournamentsPage() {
             const maps = Array.isArray(t?.maps) ? t.maps : [];
             const totalMatches = t?.total_matches ?? maps.length ?? 0;
             const pct = totalMatches ? Math.min(100, Math.round((completed / totalMatches) * 100)) : 0;
-            return (
-              <Link
-                key={t.id}
-                to="/tournaments/$id"
-                params={{ id: t.id }}
-                className="rounded-xl border border-border bg-card p-5 hover:border-gold/50 transition block"
-              >
+            const isSel = selected.has(t.id);
+            const cardClass = `relative rounded-xl border bg-card p-5 transition block ${selectMode
+              ? (isSel ? "border-gold ring-2 ring-gold/40 cursor-pointer" : "border-border hover:border-gold/50 cursor-pointer")
+              : "border-border hover:border-gold/50"}`;
+
+            const inner = (
+              <>
                 <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="font-display font-bold truncate">{t?.name ?? "Untitled"}</div>
-                    <div className="text-xs text-muted-foreground">{t?.series_type ?? "?"}-match series · {t?.created_at ? new Date(t.created_at).toLocaleDateString() : ""}</div>
+                  <div className="flex items-start gap-2 min-w-0">
+                    {selectMode && (
+                      isSel
+                        ? <CheckSquare className="w-5 h-5 text-gold mt-0.5 shrink-0" />
+                        : <Square className="w-5 h-5 text-muted-foreground mt-0.5 shrink-0" />
+                    )}
+                    <div className="min-w-0">
+                      <div className="font-display font-bold truncate">{t?.name ?? "Untitled"}</div>
+                      <div className="text-xs text-muted-foreground">{t?.series_type ?? "?"}-match series · {t?.created_at ? new Date(t.created_at).toLocaleDateString() : ""}</div>
+                    </div>
                   </div>
-                  <span className="text-xs font-medium text-gold whitespace-nowrap">{completed}/{totalMatches}</span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-xs font-medium text-gold whitespace-nowrap">{completed}/{totalMatches}</span>
+                    {!selectMode && (
+                      <button
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); deleteTournaments([t.id]); }}
+                        title="Delete tournament"
+                        className="inline-flex items-center justify-center rounded-md border border-gold bg-black text-gold hover:bg-gold hover:text-black transition p-1.5"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <div className="mt-3 h-1.5 rounded-full bg-muted overflow-hidden">
                   <div className="h-full bg-gradient-gold" style={{ width: `${pct}%` }} />
@@ -266,6 +342,19 @@ function TournamentsPage() {
                     </span>
                   ))}
                 </div>
+              </>
+            );
+
+            if (selectMode) {
+              return (
+                <div key={t.id} className={cardClass} onClick={() => toggleSel(t.id)}>
+                  {inner}
+                </div>
+              );
+            }
+            return (
+              <Link key={t.id} to="/tournaments/$id" params={{ id: t.id }} className={cardClass}>
+                {inner}
               </Link>
             );
           })}
