@@ -44,6 +44,17 @@ function TeamsPage() {
     if (error) toast.error(error.message); else { toast.success("Team deleted"); qc.invalidateQueries(); }
   }
 
+  async function handleBulkDelete() {
+    const ids = Array.from(selected);
+    if (ids.length === 0) return;
+    if (!confirm(`Delete ${ids.length} team${ids.length > 1 ? "s" : ""}? Past match results will keep raw team names but unlink.`)) return;
+    const { error } = await supabase.from("teams").delete().in("id", ids);
+    if (error) { toast.error(error.message); return; }
+    toast.success(`Deleted ${ids.length} team${ids.length > 1 ? "s" : ""}`);
+    exitSelect();
+    qc.invalidateQueries();
+  }
+
   function toggleSelect(id: string) {
     setSelected(prev => {
       const next = new Set(prev);
