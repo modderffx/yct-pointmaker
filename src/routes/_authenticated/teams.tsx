@@ -87,6 +87,13 @@ function TeamsPage() {
               >
                 <GitMerge className="w-4 h-4 mr-1" /> Merge…
               </Button>
+              <button
+                onClick={handleBulkDelete}
+                disabled={selected.size === 0}
+                className="inline-flex items-center gap-1 rounded-md border border-gold bg-black text-gold px-3 py-2 text-sm font-semibold hover:bg-gold hover:text-black disabled:opacity-40 disabled:cursor-not-allowed transition"
+              >
+                <Trash2 className="w-4 h-4" /> Delete {selected.size || ""}
+              </button>
               <Button variant="ghost" onClick={exitSelect}>Cancel</Button>
             </>
           ) : (
