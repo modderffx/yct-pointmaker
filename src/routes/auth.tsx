@@ -53,10 +53,8 @@ function AuthPage() {
     <div className="min-h-screen flex items-center justify-center bg-surface px-4">
       <div className="w-full max-w-md">
         <div className="flex flex-col items-center mb-8">
-          <div className="w-14 h-14 rounded-xl bg-gradient-gold flex items-center justify-center shadow-glow">
-            <Flame className="w-7 h-7" />
-          </div>
-          <h1 className="mt-4 text-3xl font-display font-bold text-gold">YCT PointMaker</h1>
+          <img src={rankforgeLogo.url} alt="RankForge" className="w-16 h-16 rounded-xl object-contain shadow-glow" />
+          <h1 className="mt-4 text-3xl font-display font-bold text-gold">RankForge</h1>
           <p className="text-sm text-muted-foreground">Free Fire Tournament Manager</p>
         </div>
         <div className="bg-card border border-border rounded-xl p-6 shadow-glow">
