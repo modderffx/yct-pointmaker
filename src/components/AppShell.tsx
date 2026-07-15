@@ -1,9 +1,10 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { Flame, Home, Swords, Users, Trophy, Settings as SettingsIcon, LogOut, Grid3x3, MoreVertical, Rocket } from "lucide-react";
+import { Home, Swords, Users, Trophy, Settings as SettingsIcon, LogOut, Grid3x3, MoreVertical, Rocket } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect, type ReactNode } from "react";
 import freeFireLogo from "@/assets/free-fire-logo.png.asset.json";
+import rankforgeLogo from "@/assets/rankforge-logo.png.asset.json";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -53,29 +54,25 @@ export function AppShell({ children }: { children: ReactNode }) {
   }
 
   function WorkspaceTabs({ className = "" }: { className?: string }) {
+    const base = "flex items-center justify-center h-11 px-5 rounded-md text-xs font-semibold uppercase tracking-wider transition";
+    const active = "bg-gradient-gold text-gold-foreground shadow-glow";
+    const inactive = "text-muted-foreground hover:text-foreground";
     return (
       <div className={`inline-flex items-center gap-1 rounded-lg border border-border bg-card/60 p-1 ${className}`}>
         <button
           type="button"
           onClick={() => selectWorkspace("freefire")}
           aria-pressed={workspace === "freefire"}
-          className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-semibold transition ${
-            workspace === "freefire"
-              ? "bg-gradient-gold text-gold-foreground shadow-glow"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
+          aria-label="Free Fire workspace"
+          className={`${base} ${workspace === "freefire" ? active : inactive}`}
         >
-          <img src={freeFireLogo.url} alt="Free Fire" className="h-4 w-auto" />
+          <img src={freeFireLogo.url} alt="Free Fire" className="h-7 w-[90px] object-contain" />
         </button>
         <button
           type="button"
           onClick={() => selectWorkspace("others")}
           aria-pressed={workspace === "others"}
-          className={`px-3 py-1.5 rounded-md text-xs font-semibold uppercase tracking-wider transition ${
-            workspace === "others"
-              ? "bg-gradient-gold text-gold-foreground shadow-glow"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
+          className={`${base} min-w-[90px] ${workspace === "others" ? active : inactive}`}
         >
           Others
         </button>
@@ -121,11 +118,9 @@ export function AppShell({ children }: { children: ReactNode }) {
       <aside className="hidden md:flex w-60 flex-col border-r border-border bg-card/40 backdrop-blur p-4">
         <div className="flex items-center justify-between mb-6 px-2">
           <Link to="/home" className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-lg bg-gradient-gold flex items-center justify-center">
-              <Flame className="w-5 h-5" />
-            </div>
+            <img src={rankforgeLogo.url} alt="RankForge" className="w-10 h-10 rounded-lg object-contain" />
             <div>
-              <div className="font-display font-bold text-lg leading-none">YCT PointMaker</div>
+              <div className="font-display font-bold text-lg leading-none">RankForge</div>
               <div className="text-[10px] uppercase tracking-widest text-gold">Esports</div>
             </div>
           </Link>
@@ -155,8 +150,8 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="md:hidden fixed top-0 inset-x-0 z-30 bg-card/90 backdrop-blur border-b border-border">
         <div className="flex items-center justify-between px-4 h-14">
           <Link to="/home" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-md bg-gradient-gold flex items-center justify-center"><Flame className="w-4 h-4" /></div>
-            <span className="font-display font-bold">YCT PointMaker</span>
+            <img src={rankforgeLogo.url} alt="RankForge" className="w-8 h-8 rounded-md object-contain" />
+            <span className="font-display font-bold">RankForge</span>
           </Link>
           <MoreMenu />
         </div>
