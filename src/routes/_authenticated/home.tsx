@@ -38,7 +38,7 @@ function HomePage() {
           <div className="inline-flex items-center gap-2 text-xs uppercase tracking-widest text-gold mb-3">
             <Flame className="w-3.5 h-3.5" /> Tournament Command Center
           </div>
-          <h1 className="text-3xl md:text-5xl font-display font-bold mb-2">Run your Free Fire league.</h1>
+          <h1 className="text-3xl md:text-5xl font-display font-bold mb-2">Run your Free Fire league with RankForge.</h1>
           <p className="text-muted-foreground max-w-xl">Upload match screenshots — we extract placements, kills, and player stats automatically. Track every squad across the season.</p>
           <Link to="/tournaments" className="inline-flex items-center gap-2 mt-6 bg-gradient-gold text-gold-foreground px-5 py-2.5 rounded-md font-semibold hover:opacity-90 shadow-glow">
             <Upload className="w-4 h-4" /> Start a tournament
