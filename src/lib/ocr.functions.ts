@@ -49,14 +49,22 @@ export const extractMatchFromScreenshots = createServerFn({ method: "POST" })
       images: z.array(z.object({
         data_url: z.string().startsWith("data:image/"),
       })).min(1).max(4),
+      participants: z.array(z.object({
+        name: z.string(),
+        short_name: z.string().optional().default(""),
+      })).optional().default([]),
     }).parse(input);
   })
   .handler(async ({ data }) => {
     const apiKey = process.env.LOVABLE_API_KEY;
     if (!apiKey) throw new Error("LOVABLE_API_KEY not configured");
 
+    const rosterHint = data.participants.length > 0
+      ? `\n\nREGISTERED TEAMS in this tournament (map every visible squad to one of these — prefer the TAG when it appears in player IGNs like "SLC PANDASR"):\n${data.participants.map((p, i) => `${i + 1}. ${p.name}${p.short_name ? ` (tag: ${p.short_name})` : ""}`).join("\n")}\nWhen you output "team_name", use the exact TAG from this list whenever you can identify the squad.`
+      : "";
+
     const content: Array<Record<string, unknown>> = [
-      { type: "text", text: "Extract all Free Fire match results from these screenshots. Return JSON only matching the specified schema." },
+      { type: "text", text: `Extract all Free Fire match results from these screenshots. Return JSON only matching the specified schema.${rosterHint}` },
       ...data.images.map(img => ({ type: "image_url", image_url: { url: img.data_url } })),
     ];
 
