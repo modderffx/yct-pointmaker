@@ -12,7 +12,7 @@ import { calcPoints, DEFAULT_PLACEMENT, matchTeamByPlayers, mergePlayers, type P
 import { uploadTeamLogo } from "@/lib/teams";
 
 export const Route = createFileRoute("/_authenticated/tournaments/$id")({
-  head: () => ({ meta: [{ title: "Tournament — YCT PointMaker" }] }),
+  head: () => ({ meta: [{ title: "Tournament — RankForge" }] }),
   component: TournamentDetailPage,
 });
 
