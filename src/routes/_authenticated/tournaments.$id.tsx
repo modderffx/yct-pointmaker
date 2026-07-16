@@ -140,8 +140,8 @@ function TournamentDetailPage() {
         return;
       }
       const allTeams = teams.data ?? [];
-      const participants = (tournament.data?.participants ?? []) as Array<{ team_id?: string }>;
-      const participantIds = new Set(participants.map(p => p.team_id).filter(Boolean) as string[]);
+      const participantEntries = (tournament.data?.participants ?? []) as Array<{ team_id?: string }>;
+      const participantIds = new Set(participantEntries.map(p => p.team_id).filter(Boolean) as string[]);
       const list = participantIds.size > 0
         ? allTeams.filter(x => participantIds.has(x.id))
         : allTeams;
