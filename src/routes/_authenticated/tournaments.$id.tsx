@@ -431,14 +431,52 @@ function TournamentDetailPage() {
         </div>
       </div>
 
-      {/* Active step uploader */}
-      {!allDone && (
-        <div className="rounded-xl border border-border bg-card p-5 space-y-4">
+      {/* Active step — choose entry mode */}
+      {!allDone && entryMode === null && (
+        <div className="rounded-xl border border-border bg-card p-6 space-y-4">
           <div>
-            <div className="text-xs uppercase tracking-widest text-gold">Active step</div>
-            <h2 className="text-xl font-display font-bold">
-              Upload 2 Screenshots for Match {currentStep} ({t.maps[currentStep - 1]})
-            </h2>
+            <div className="text-xs uppercase tracking-widest text-gold">Match {currentStep} · {t.maps[currentStep - 1]}</div>
+            <h2 className="text-xl font-display font-bold">How do you want to enter results?</h2>
+            <p className="text-sm text-muted-foreground">Pick a mode for this match. You can switch on the next match.</p>
+          </div>
+          <div className="grid sm:grid-cols-2 gap-3">
+            <button
+              onClick={() => setEntryMode("auto")}
+              className="text-left rounded-lg border border-border hover:border-gold hover:bg-gold/5 p-5 transition"
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <Sparkles className="w-5 h-5 text-gold" />
+                <div className="font-display font-bold">Automatic</div>
+              </div>
+              <div className="text-xs text-muted-foreground">Upload result screenshots — Gemini AI reads placements, kills and maps them to your registered teams.</div>
+            </button>
+            <button
+              onClick={() => setEntryMode("manual")}
+              className="text-left rounded-lg border border-border hover:border-gold hover:bg-gold/5 p-5 transition"
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <Users className="w-5 h-5 text-gold" />
+                <div className="font-display font-bold">Manual</div>
+              </div>
+              <div className="text-xs text-muted-foreground">Type each team's kills and placement. Points calculate automatically from your scoring rules.</div>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Active step uploader — Automatic */}
+      {!allDone && entryMode === "auto" && (
+        <div className="rounded-xl border border-border bg-card p-5 space-y-4">
+          <div className="flex items-start justify-between gap-3 flex-wrap">
+            <div>
+              <div className="text-xs uppercase tracking-widest text-gold">Automatic · Active step</div>
+              <h2 className="text-xl font-display font-bold">
+                Upload screenshots for Match {currentStep} ({t.maps[currentStep - 1]})
+              </h2>
+            </div>
+            <button onClick={() => { setEntryMode(null); resetStep(); }} className="text-xs text-muted-foreground hover:text-foreground underline">
+              Switch mode
+            </button>
           </div>
 
           {!extracted && (
@@ -482,6 +520,23 @@ function TournamentDetailPage() {
           )}
         </div>
       )}
+
+      {/* Active step — Manual */}
+      {!allDone && entryMode === "manual" && (
+        <ManualMatchForm
+          matchNumber={currentStep}
+          mapName={t.maps[currentStep - 1] ?? `Match ${currentStep}`}
+          isFinal={currentStep >= t.total_matches}
+          participants={(t.participants ?? []) as Array<{ team_id?: string; name: string; short_name?: string }>}
+          allTeams={teams.data ?? []}
+          placementMap={placementMap}
+          killValue={killValue}
+          saving={manualSaving}
+          onCancel={() => setEntryMode(null)}
+          onSave={handleManualSave}
+        />
+      )}
+
 
       {allDone && (
         <div className="rounded-xl border border-gold/40 bg-gold/10 p-6 text-center">
