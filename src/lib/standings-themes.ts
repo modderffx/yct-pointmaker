@@ -116,7 +116,7 @@ export const THEMES: Record<ThemeKey, ExportTheme> = {
     headerText: "#6366f1",
     bodyText: "#1e1b4b",
     mutedText: "#6b7280",
-    brandLabel: "YCT PointMaker Tournament",
+    brandLabel: "RankForge Tournament",
     brandLabelColor: "#6366f1",
     titleColor: "#1e1b4b",
     titleShadow: "none",
