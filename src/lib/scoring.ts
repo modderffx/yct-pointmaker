@@ -70,6 +70,17 @@ export function matchTeamByPlayers<T extends TeamLike>(
   const nName = normalize(rawName);
   const extractedKeys = new Set(players.map(normalizePlayer).filter(Boolean));
 
+  // Infer clan tags from player IGN prefixes (e.g. "SLC PANDASR" -> "SLC").
+  const tagVotes = new Map<string, number>();
+  for (const p of players) {
+    const parts = p.replace(/[\[\]【】()<>|•·]/g, " ").trim().split(/\s+/);
+    if (parts.length > 1 && parts[0].length >= 2 && parts[0].length <= 5) {
+      const t = normalize(parts[0]);
+      if (t) tagVotes.set(t, (tagVotes.get(t) ?? 0) + 1);
+    }
+  }
+  const topTag = Array.from(tagVotes.entries()).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "";
+
   let best: MatchResult<T> = null;
 
   for (const t of teams) {
