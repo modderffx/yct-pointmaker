@@ -74,8 +74,16 @@ export function matchTeamByPlayers<T extends TeamLike>(
 
   for (const t of teams) {
     const tn = normalize(t.name);
-    const nameExact = nName && (tn === nName || t.aliases?.some(a => normalize(a) === nName));
-    const namePartial = !nameExact && nName && tn.length >= 3 && (nName.includes(tn) || tn.includes(nName));
+    const tShort = t.short_name ? normalize(t.short_name) : "";
+    const nameExact = nName && (
+      tn === nName ||
+      (tShort && tShort === nName) ||
+      t.aliases?.some(a => normalize(a) === nName)
+    );
+    const namePartial = !nameExact && nName && (
+      (tn.length >= 3 && (nName.includes(tn) || tn.includes(nName))) ||
+      (tShort.length >= 2 && (nName.includes(tShort) || tShort === nName))
+    );
 
     const roster = new Set((t.players ?? []).map(normalizePlayer).filter(Boolean));
     let matched = 0;
