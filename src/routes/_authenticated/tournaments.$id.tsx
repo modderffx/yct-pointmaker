@@ -269,6 +269,65 @@ function TournamentDetailPage() {
     }
   }
 
+  async function handleManualSave(rows: Array<{ team_id: string; team_name: string; placement: number; kills: number }>) {
+    if (!tournament.data) return;
+    const stepNum = currentStep;
+    const mapName = tournament.data.maps[stepNum - 1] ?? `Match ${stepNum}`;
+
+    // Validation
+    const placements = rows.map(r => r.placement);
+    const seen = new Set<number>();
+    for (const p of placements) {
+      if (!Number.isInteger(p) || p < 1) throw new Error("Every team needs a valid placement");
+      if (seen.has(p)) { toast.error(`Placement #${p} is used twice — each team gets a unique rank.`); return; }
+      seen.add(p);
+    }
+
+    setManualSaving(true);
+    try {
+      const { data: match, error: mErr } = await supabase.from("matches").insert({
+        user_id: userId,
+        name: `${tournament.data.name} · Match ${stepNum} (${mapName})`,
+        screenshot_urls: [],
+        tournament_id: id,
+        match_number: stepNum,
+        map_name: mapName,
+      }).select().single();
+      if (mErr) throw mErr;
+
+      const teamById = new Map((teams.data ?? []).map(t => [t.id, t]));
+      const dbRows = rows.map(r => {
+        const pts = calcPoints(r.placement, r.kills, placementMap, killValue);
+        const team = teamById.get(r.team_id);
+        const roster = team?.players ?? [];
+        return {
+          user_id: userId,
+          match_id: match.id,
+          team_id: r.team_id,
+          team_name_raw: r.team_name,
+          placement: r.placement,
+          kills: r.kills,
+          placement_points: pts.placement_points,
+          kill_points: pts.kill_points,
+          total_points: pts.total_points,
+          players: roster.map(name => ({ name, kills: 0 })),
+        };
+      });
+      const { error: rErr } = await supabase.from("match_results").insert(dbRows);
+      if (rErr) throw rErr;
+
+      const isFinal = stepNum >= tournament.data.total_matches;
+      toast.success(isFinal ? "Tournament finalized!" : `Match ${stepNum} saved`);
+      setEntryMode(null);
+      resetStep();
+      qc.invalidateQueries();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Save failed");
+    } finally {
+      setManualSaving(false);
+    }
+  }
+
   async function handleRedo(matchNumber: number) {
     const m = (matches.data ?? []).find(x => x.match_number === matchNumber);
     if (!m) return;
