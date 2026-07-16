@@ -132,7 +132,9 @@ function TournamentDetailPage() {
     setProcessing(true);
     try {
       const images = await Promise.all(files.map(async f => ({ data_url: await fileToDataUrl(f) })));
-      const result = await runOcr({ data: { images } });
+      const participants = ((tournament.data?.participants ?? []) as Array<{ name: string; short_name?: string }>)
+        .map(p => ({ name: p.name, short_name: p.short_name ?? "" }));
+      const result = await runOcr({ data: { images, participants } });
       if (!result.teams.length) {
         toast.error("Couldn't read any teams. Try clearer screenshots.");
         return;
