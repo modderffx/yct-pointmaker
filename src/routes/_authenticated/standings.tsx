@@ -75,8 +75,6 @@ function StandingsPage() {
     return Array.from(map.values()).sort((a, b) => b.total - a.total || b.wins - a.wins || b.kills - a.kills);
   }, [data.data]);
 
-  const handleExport = async () => {
-    if (!exportRef.current) return;
   const [logoDataUrls, setLogoDataUrls] = useState<Record<string, string>>({});
 
   // Preload team logos as data URLs so the html-to-image export doesn't hit CORS
