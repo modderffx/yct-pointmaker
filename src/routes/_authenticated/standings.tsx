@@ -1,14 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Trophy, Download, Shield } from "lucide-react";
 import { toPng } from "html-to-image";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { getLogoUrl } from "@/lib/teams";
 import { THEMES, THEME_LIST, type ExportTheme, type ThemeKey } from "@/lib/standings-themes";
 
 export const Route = createFileRoute("/_authenticated/standings")({
-  head: () => ({ meta: [{ title: "Standings — YCT PointMaker" }] }),
+  head: () => ({ meta: [{ title: "Standings — RankForge" }] }),
   component: StandingsPage,
 });
 
