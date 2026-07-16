@@ -323,13 +323,6 @@ const ExportCard = ({ ref, rows, theme, logoDataUrls }: { ref: React.Ref<HTMLDiv
                 >
                   {r?.logo_url && logoDataUrls[r.logo_url] ? (
                     <img src={logoDataUrls[r.logo_url]} alt="" width={48} height={48} style={{ objectFit: "cover" }} />
-                  ) : r?.logo_url ? (
-                    <Shield size={26} color="#6b7280" />
-                  ) : (
-                    <Shield size={26} color="#6b7280" />
-                  )}
-                  {false && (
-                    <img src="" alt="" crossOrigin="anonymous" />
                   ) : (
                     <Shield size={26} color="#6b7280" />
                   )}
