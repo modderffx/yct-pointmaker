@@ -27,6 +27,7 @@ export function normalizePlayer(s: string) {
 export type TeamLike = {
   id?: string;
   name: string;
+  short_name?: string | null;
   aliases?: string[] | null;
   players?: string[] | null;
 };
@@ -69,16 +70,41 @@ export function matchTeamByPlayers<T extends TeamLike>(
   const nName = normalize(rawName);
   const extractedKeys = new Set(players.map(normalizePlayer).filter(Boolean));
 
+  // Infer clan tags from player IGN prefixes (e.g. "SLC PANDASR" -> "SLC").
+  const tagVotes = new Map<string, number>();
+  for (const p of players) {
+    const parts = p.replace(/[\[\]【】()<>|•·]/g, " ").trim().split(/\s+/);
+    if (parts.length > 1 && parts[0].length >= 2 && parts[0].length <= 5) {
+      const t = normalize(parts[0]);
+      if (t) tagVotes.set(t, (tagVotes.get(t) ?? 0) + 1);
+    }
+  }
+  const topTag = Array.from(tagVotes.entries()).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "";
+
   let best: MatchResult<T> = null;
 
   for (const t of teams) {
     const tn = normalize(t.name);
-    const nameExact = nName && (tn === nName || t.aliases?.some(a => normalize(a) === nName));
-    const namePartial = !nameExact && nName && tn.length >= 3 && (nName.includes(tn) || tn.includes(nName));
+    const tShort = t.short_name ? normalize(t.short_name) : "";
+    const nameExact = nName && (
+      tn === nName ||
+      (tShort && tShort === nName) ||
+      t.aliases?.some(a => normalize(a) === nName)
+    );
+    const namePartial = !nameExact && nName && (
+      (tn.length >= 3 && (nName.includes(tn) || tn.includes(nName))) ||
+      (tShort.length >= 2 && (nName.includes(tShort) || tShort === nName))
+    );
 
     const roster = new Set((t.players ?? []).map(normalizePlayer).filter(Boolean));
     let matched = 0;
     for (const k of extractedKeys) if (roster.has(k)) matched++;
+
+    const tagMatches = !!tShort && (
+      tShort === topTag ||
+      Array.from(tagVotes.keys()).some(k => k === tShort) ||
+      t.aliases?.some(a => normalize(a) === topTag)
+    );
 
     let confidence = 0;
     let reason: "name" | "players" | "mixed" = "players";
@@ -86,6 +112,12 @@ export function matchTeamByPlayers<T extends TeamLike>(
     if (nameExact) {
       confidence = 1;
       reason = matched > 0 ? "mixed" : "name";
+    } else if (tagMatches && matched >= 1) {
+      confidence = 0.9;
+      reason = "mixed";
+    } else if (tagMatches) {
+      confidence = 0.75;
+      reason = "name";
     } else if (matched >= 2) {
       const denom = Math.max(extractedKeys.size, roster.size, 1);
       confidence = Math.min(0.95, matched / denom);

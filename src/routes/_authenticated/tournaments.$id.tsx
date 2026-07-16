@@ -12,7 +12,7 @@ import { calcPoints, DEFAULT_PLACEMENT, matchTeamByPlayers, mergePlayers, type P
 import { uploadTeamLogo } from "@/lib/teams";
 
 export const Route = createFileRoute("/_authenticated/tournaments/$id")({
-  head: () => ({ meta: [{ title: "Tournament — YCT PointMaker" }] }),
+  head: () => ({ meta: [{ title: "Tournament — RankForge" }] }),
   component: TournamentDetailPage,
 });
 
@@ -107,6 +107,8 @@ function TournamentDetailPage() {
   const [processing, setProcessing] = useState(false);
   const [extracted, setExtracted] = useState<ExtractedTeam[] | null>(null);
   const [saving, setSaving] = useState(false);
+  const [entryMode, setEntryMode] = useState<"auto" | "manual" | null>(null);
+  const [manualSaving, setManualSaving] = useState(false);
 
   function resetStep() {
     setFiles([]); setExtracted(null);
@@ -132,14 +134,16 @@ function TournamentDetailPage() {
     setProcessing(true);
     try {
       const images = await Promise.all(files.map(async f => ({ data_url: await fileToDataUrl(f) })));
-      const result = await runOcr({ data: { images } });
+      const participants = ((tournament.data?.participants ?? []) as Array<{ name: string; short_name?: string }>)
+        .map(p => ({ name: p.name, short_name: p.short_name ?? "" }));
+      const result = await runOcr({ data: { images, participants } });
       if (!result.teams.length) {
         toast.error("Couldn't read any teams. Try clearer screenshots.");
         return;
       }
       const allTeams = teams.data ?? [];
-      const participants = (tournament.data?.participants ?? []) as Array<{ team_id?: string }>;
-      const participantIds = new Set(participants.map(p => p.team_id).filter(Boolean) as string[]);
+      const participantEntries = (tournament.data?.participants ?? []) as Array<{ team_id?: string }>;
+      const participantIds = new Set(participantEntries.map(p => p.team_id).filter(Boolean) as string[]);
       const list = participantIds.size > 0
         ? allTeams.filter(x => participantIds.has(x.id))
         : allTeams;
@@ -265,6 +269,65 @@ function TournamentDetailPage() {
     }
   }
 
+  async function handleManualSave(rows: Array<{ team_id: string; team_name: string; placement: number; kills: number }>) {
+    if (!tournament.data) return;
+    const stepNum = currentStep;
+    const mapName = tournament.data.maps[stepNum - 1] ?? `Match ${stepNum}`;
+
+    // Validation
+    const placements = rows.map(r => r.placement);
+    const seen = new Set<number>();
+    for (const p of placements) {
+      if (!Number.isInteger(p) || p < 1) throw new Error("Every team needs a valid placement");
+      if (seen.has(p)) { toast.error(`Placement #${p} is used twice — each team gets a unique rank.`); return; }
+      seen.add(p);
+    }
+
+    setManualSaving(true);
+    try {
+      const { data: match, error: mErr } = await supabase.from("matches").insert({
+        user_id: userId,
+        name: `${tournament.data.name} · Match ${stepNum} (${mapName})`,
+        screenshot_urls: [],
+        tournament_id: id,
+        match_number: stepNum,
+        map_name: mapName,
+      }).select().single();
+      if (mErr) throw mErr;
+
+      const teamById = new Map((teams.data ?? []).map(t => [t.id, t]));
+      const dbRows = rows.map(r => {
+        const pts = calcPoints(r.placement, r.kills, placementMap, killValue);
+        const team = teamById.get(r.team_id);
+        const roster = team?.players ?? [];
+        return {
+          user_id: userId,
+          match_id: match.id,
+          team_id: r.team_id,
+          team_name_raw: r.team_name,
+          placement: r.placement,
+          kills: r.kills,
+          placement_points: pts.placement_points,
+          kill_points: pts.kill_points,
+          total_points: pts.total_points,
+          players: roster.map(name => ({ name, kills: 0 })),
+        };
+      });
+      const { error: rErr } = await supabase.from("match_results").insert(dbRows);
+      if (rErr) throw rErr;
+
+      const isFinal = stepNum >= tournament.data.total_matches;
+      toast.success(isFinal ? "Tournament finalized!" : `Match ${stepNum} saved`);
+      setEntryMode(null);
+      resetStep();
+      qc.invalidateQueries();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Save failed");
+    } finally {
+      setManualSaving(false);
+    }
+  }
+
   async function handleRedo(matchNumber: number) {
     const m = (matches.data ?? []).find(x => x.match_number === matchNumber);
     if (!m) return;
@@ -368,14 +431,52 @@ function TournamentDetailPage() {
         </div>
       </div>
 
-      {/* Active step uploader */}
-      {!allDone && (
-        <div className="rounded-xl border border-border bg-card p-5 space-y-4">
+      {/* Active step — choose entry mode */}
+      {!allDone && entryMode === null && (
+        <div className="rounded-xl border border-border bg-card p-6 space-y-4">
           <div>
-            <div className="text-xs uppercase tracking-widest text-gold">Active step</div>
-            <h2 className="text-xl font-display font-bold">
-              Upload 2 Screenshots for Match {currentStep} ({t.maps[currentStep - 1]})
-            </h2>
+            <div className="text-xs uppercase tracking-widest text-gold">Match {currentStep} · {t.maps[currentStep - 1]}</div>
+            <h2 className="text-xl font-display font-bold">How do you want to enter results?</h2>
+            <p className="text-sm text-muted-foreground">Pick a mode for this match. You can switch on the next match.</p>
+          </div>
+          <div className="grid sm:grid-cols-2 gap-3">
+            <button
+              onClick={() => setEntryMode("auto")}
+              className="text-left rounded-lg border border-border hover:border-gold hover:bg-gold/5 p-5 transition"
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <Sparkles className="w-5 h-5 text-gold" />
+                <div className="font-display font-bold">Automatic</div>
+              </div>
+              <div className="text-xs text-muted-foreground">Upload result screenshots — Gemini AI reads placements, kills and maps them to your registered teams.</div>
+            </button>
+            <button
+              onClick={() => setEntryMode("manual")}
+              className="text-left rounded-lg border border-border hover:border-gold hover:bg-gold/5 p-5 transition"
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <Users className="w-5 h-5 text-gold" />
+                <div className="font-display font-bold">Manual</div>
+              </div>
+              <div className="text-xs text-muted-foreground">Type each team's kills and placement. Points calculate automatically from your scoring rules.</div>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Active step uploader — Automatic */}
+      {!allDone && entryMode === "auto" && (
+        <div className="rounded-xl border border-border bg-card p-5 space-y-4">
+          <div className="flex items-start justify-between gap-3 flex-wrap">
+            <div>
+              <div className="text-xs uppercase tracking-widest text-gold">Automatic · Active step</div>
+              <h2 className="text-xl font-display font-bold">
+                Upload screenshots for Match {currentStep} ({t.maps[currentStep - 1]})
+              </h2>
+            </div>
+            <button onClick={() => { setEntryMode(null); resetStep(); }} className="text-xs text-muted-foreground hover:text-foreground underline">
+              Switch mode
+            </button>
           </div>
 
           {!extracted && (
@@ -419,6 +520,23 @@ function TournamentDetailPage() {
           )}
         </div>
       )}
+
+      {/* Active step — Manual */}
+      {!allDone && entryMode === "manual" && (
+        <ManualMatchForm
+          matchNumber={currentStep}
+          mapName={t.maps[currentStep - 1] ?? `Match ${currentStep}`}
+          isFinal={currentStep >= t.total_matches}
+          participants={(t.participants ?? []) as Array<{ team_id?: string; name: string; short_name?: string }>}
+          allTeams={teams.data ?? []}
+          placementMap={placementMap}
+          killValue={killValue}
+          saving={manualSaving}
+          onCancel={() => setEntryMode(null)}
+          onSave={handleManualSave}
+        />
+      )}
+
 
       {allDone && (
         <div className="rounded-xl border border-gold/40 bg-gold/10 p-6 text-center">
@@ -623,3 +741,147 @@ function ExtractedReview({
     </div>
   );
 }
+
+type Team = { id: string; name: string; short_name: string | null };
+
+function ManualMatchForm({
+  matchNumber, mapName, isFinal, participants, allTeams, placementMap, killValue, saving, onCancel, onSave,
+}: {
+  matchNumber: number;
+  mapName: string;
+  isFinal: boolean;
+  participants: Array<{ team_id?: string; name: string; short_name?: string }>;
+  allTeams: Array<{ id: string; name: string; short_name: string | null }>;
+  placementMap: PlacementMap;
+  killValue: number;
+  saving: boolean;
+  onCancel: () => void;
+  onSave: (rows: Array<{ team_id: string; team_name: string; placement: number; kills: number }>) => void | Promise<void>;
+}) {
+  const roster: Team[] = useMemo(() => {
+    const byId = new Map(allTeams.map(t => [t.id, t]));
+    if (participants.length > 0) {
+      return participants.map(p => {
+        if (p.team_id && byId.has(p.team_id)) return byId.get(p.team_id)!;
+        return { id: p.team_id ?? p.name, name: p.name, short_name: p.short_name ?? null };
+      });
+    }
+    return allTeams;
+  }, [participants, allTeams]);
+
+  const [entries, setEntries] = useState(() =>
+    roster.map((t, i) => ({ team_id: t.id, team_name: t.name, short_name: t.short_name, placement: i + 1, kills: 0 }))
+  );
+
+  useEffect(() => {
+    setEntries(prev => {
+      const prevById = new Map(prev.map(e => [e.team_id, e]));
+      return roster.map((t, i) => {
+        const p = prevById.get(t.id);
+        return p
+          ? { ...p, team_name: t.name, short_name: t.short_name }
+          : { team_id: t.id, team_name: t.name, short_name: t.short_name, placement: i + 1, kills: 0 };
+      });
+    });
+  }, [roster]);
+
+  const usedPlacements = new Map<number, number>();
+  for (const e of entries) usedPlacements.set(e.placement, (usedPlacements.get(e.placement) ?? 0) + 1);
+  const duplicates = Array.from(usedPlacements.entries()).filter(([, c]) => c > 1).map(([p]) => p);
+  const ready = entries.every(e => e.placement >= 1) && duplicates.length === 0;
+
+  function update(i: number, patch: Partial<typeof entries[number]>) {
+    setEntries(prev => { const arr = [...prev]; arr[i] = { ...arr[i], ...patch }; return arr; });
+  }
+
+  const preview = [...entries]
+    .map(e => ({ ...e, ...calcPoints(e.placement, e.kills, placementMap, killValue) }))
+    .sort((a, b) => b.total_points - a.total_points || a.placement - b.placement);
+
+  return (
+    <div className="rounded-xl border border-border bg-card p-5 space-y-4">
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div>
+          <div className="text-xs uppercase tracking-widest text-gold">Manual · Active step</div>
+          <h2 className="text-xl font-display font-bold">
+            Enter results for Match {matchNumber} ({mapName})
+          </h2>
+          <p className="text-xs text-muted-foreground">Type each team's total kills and finish placement. Points auto-calculate from your scoring rules.</p>
+        </div>
+        <button onClick={onCancel} className="text-xs text-muted-foreground hover:text-foreground underline">
+          Switch mode
+        </button>
+      </div>
+
+      {duplicates.length > 0 && (
+        <div className="rounded-md border border-amber-500/40 bg-amber-500/10 text-amber-300 text-xs px-3 py-2">
+          Placement{duplicates.length > 1 ? "s" : ""} #{duplicates.join(", #")} used more than once — each team needs a unique rank.
+        </div>
+      )}
+
+      <div className="rounded-lg border border-border overflow-hidden">
+        <div className="grid grid-cols-12 gap-2 px-3 py-2 text-[10px] uppercase tracking-wider text-muted-foreground bg-muted/30 border-b border-border">
+          <div className="col-span-5">Team</div>
+          <div className="col-span-2 text-center">Placement</div>
+          <div className="col-span-2 text-center">Kills</div>
+          <div className="col-span-3 text-right">Points (Plc + K = Total)</div>
+        </div>
+        {entries.map((e, i) => {
+          const pts = calcPoints(e.placement, e.kills, placementMap, killValue);
+          const dup = duplicates.includes(e.placement);
+          return (
+            <div key={e.team_id} className="grid grid-cols-12 gap-2 items-center px-3 py-2 border-b border-border/50 last:border-0">
+              <div className="col-span-5 min-w-0">
+                <div className="font-medium truncate">{e.team_name}</div>
+                {e.short_name && <div className="text-[10px] text-gold uppercase tracking-wider">{e.short_name}</div>}
+              </div>
+              <div className="col-span-2">
+                <Input
+                  type="number" min={1} max={roster.length}
+                  value={e.placement}
+                  onChange={ev => update(i, { placement: Math.max(1, Number(ev.target.value) || 1) })}
+                  className={`h-9 text-center ${dup ? "border-amber-500" : ""}`}
+                />
+              </div>
+              <div className="col-span-2">
+                <Input
+                  type="number" min={0}
+                  value={e.kills}
+                  onChange={ev => update(i, { kills: Math.max(0, Number(ev.target.value) || 0) })}
+                  className="h-9 text-center"
+                />
+              </div>
+              <div className="col-span-3 text-right text-sm">
+                <span className="text-muted-foreground">{pts.placement_points} + {pts.kill_points} = </span>
+                <span className="font-display font-bold text-gold">{pts.total_points}</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <details className="rounded-lg border border-border bg-background/60">
+        <summary className="cursor-pointer text-xs uppercase tracking-widest text-muted-foreground px-3 py-2">
+          Preview standings for this match
+        </summary>
+        <div className="px-3 pb-3 space-y-1">
+          {preview.map((p, idx) => (
+            <div key={p.team_id} className="flex items-center justify-between text-sm">
+              <span><span className="text-gold font-bold mr-2">{idx + 1}</span>{p.team_name}</span>
+              <span className="font-bold text-gold">{p.total_points}</span>
+            </div>
+          ))}
+        </div>
+      </details>
+
+      <Button
+        onClick={() => onSave(entries.map(e => ({ team_id: e.team_id, team_name: e.team_name, placement: e.placement, kills: e.kills })))}
+        disabled={saving || !ready}
+        className="w-full bg-gradient-gold text-gold-foreground font-semibold"
+      >
+        {saving ? "Saving…" : isFinal ? "Finalize Tournament Standings" : `Save Match ${matchNumber} & Continue`}
+      </Button>
+    </div>
+  );
+}
+

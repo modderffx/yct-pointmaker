@@ -1,14 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Trophy, Download, Shield } from "lucide-react";
 import { toPng } from "html-to-image";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { getLogoUrl } from "@/lib/teams";
 import { THEMES, THEME_LIST, type ExportTheme, type ThemeKey } from "@/lib/standings-themes";
 
 export const Route = createFileRoute("/_authenticated/standings")({
-  head: () => ({ meta: [{ title: "Standings — YCT PointMaker" }] }),
+  head: () => ({ meta: [{ title: "Standings — RankForge" }] }),
   component: StandingsPage,
 });
 
@@ -73,25 +75,71 @@ function StandingsPage() {
     return Array.from(map.values()).sort((a, b) => b.total - a.total || b.wins - a.wins || b.kills - a.kills);
   }, [data.data]);
 
+  const [logoDataUrls, setLogoDataUrls] = useState<Record<string, string>>({});
+
+  // Preload team logos as data URLs so the html-to-image export doesn't hit CORS
+  // and fail silently.
+  async function preloadLogos(rows: Row[]): Promise<Record<string, string>> {
+    const out: Record<string, string> = {};
+    await Promise.all(rows.map(async r => {
+      if (!r.logo_url) return;
+      try {
+        const signed = /^https?:/.test(r.logo_url) ? r.logo_url : await getLogoUrl(r.logo_url);
+        if (!signed) return;
+        const res = await fetch(signed);
+        if (!res.ok) return;
+        const blob = await res.blob();
+        const data = await new Promise<string>((res2, rej) => {
+          const fr = new FileReader();
+          fr.onload = () => res2(fr.result as string);
+          fr.onerror = rej;
+          fr.readAsDataURL(blob);
+        });
+        out[r.logo_url] = data;
+      } catch { /* ignore individual logo errors */ }
+    }));
+    return out;
+  }
+
   const handleExport = async () => {
-    if (!exportRef.current) return;
+    if (!exportRef.current) { toast.error("Export card not ready"); return; }
+    if (rows.length === 0) { toast.error("No results to export yet"); return; }
     setExporting(true);
     try {
+      const loaded = await preloadLogos(rows.slice(0, 12));
+      setLogoDataUrls(loaded);
+      // Wait a tick so the ExportCard re-renders with the inlined logos.
+      await new Promise(r => setTimeout(r, 100));
       const dataUrl = await toPng(exportRef.current, {
         cacheBust: true,
         pixelRatio: 2,
         backgroundColor: themeKey === "minimal-pastel" ? "#fafaff" : "#0b0c10",
+        skipFonts: true,
+        filter: (node) => {
+          // Skip any <img> that hasn't been converted to a data URL, to avoid
+          // canvas tainting from cross-origin storage responses.
+          if (node instanceof HTMLImageElement) {
+            return node.src.startsWith("data:");
+          }
+          return true;
+        },
       });
       const link = document.createElement("a");
       link.download = `tournament-standings-${themeKey}.png`;
       link.href = dataUrl;
+      document.body.appendChild(link);
       link.click();
+      link.remove();
+      toast.success("Standings exported");
     } catch (err) {
       console.error("Export failed", err);
+      toast.error(err instanceof Error ? `Export failed: ${err.message}` : "Export failed");
     } finally {
       setExporting(false);
     }
   };
+  // silence unused warnings for the setter that might change independently
+  useEffect(() => { void logoDataUrls; }, [logoDataUrls]);
 
   const top12 = rows.slice(0, 12);
 
@@ -176,13 +224,13 @@ function StandingsPage() {
 
       {/* Off-screen export canvas */}
       <div style={{ position: "fixed", left: "-10000px", top: 0, pointerEvents: "none" }} aria-hidden>
-        <ExportCard ref={exportRef} rows={top12} theme={theme} />
+        <ExportCard ref={exportRef} rows={top12} theme={theme} logoDataUrls={logoDataUrls} />
       </div>
     </div>
   );
 }
 
-const ExportCard = ({ ref, rows, theme }: { ref: React.Ref<HTMLDivElement>; rows: Row[]; theme: ExportTheme }) => {
+const ExportCard = ({ ref, rows, theme, logoDataUrls }: { ref: React.Ref<HTMLDivElement>; rows: Row[]; theme: ExportTheme; logoDataUrls: Record<string, string> }) => {
   const slots: (Row | null)[] = Array.from({ length: 12 }, (_, i) => rows[i] ?? null);
 
   return (
@@ -273,8 +321,8 @@ const ExportCard = ({ ref, rows, theme }: { ref: React.Ref<HTMLDivElement>; rows
                     display: "grid", placeItems: "center", flexShrink: 0, overflow: "hidden",
                   }}
                 >
-                  {r?.logo_url ? (
-                    <img src={r.logo_url} alt="" width={48} height={48} style={{ objectFit: "cover" }} crossOrigin="anonymous" />
+                  {r?.logo_url && logoDataUrls[r.logo_url] ? (
+                    <img src={logoDataUrls[r.logo_url]} alt="" width={48} height={48} style={{ objectFit: "cover" }} />
                   ) : (
                     <Shield size={26} color="#6b7280" />
                   )}
