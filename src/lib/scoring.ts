@@ -27,6 +27,7 @@ export function normalizePlayer(s: string) {
 export type TeamLike = {
   id?: string;
   name: string;
+  short_name?: string | null;
   aliases?: string[] | null;
   players?: string[] | null;
 };
