@@ -107,6 +107,8 @@ function TournamentDetailPage() {
   const [processing, setProcessing] = useState(false);
   const [extracted, setExtracted] = useState<ExtractedTeam[] | null>(null);
   const [saving, setSaving] = useState(false);
+  const [entryMode, setEntryMode] = useState<"auto" | "manual" | null>(null);
+  const [manualSaving, setManualSaving] = useState(false);
 
   function resetStep() {
     setFiles([]); setExtracted(null);
