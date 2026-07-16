@@ -100,12 +100,24 @@ export function matchTeamByPlayers<T extends TeamLike>(
     let matched = 0;
     for (const k of extractedKeys) if (roster.has(k)) matched++;
 
+    const tagMatches = !!tShort && (
+      tShort === topTag ||
+      Array.from(tagVotes.keys()).some(k => k === tShort) ||
+      t.aliases?.some(a => normalize(a) === topTag)
+    );
+
     let confidence = 0;
     let reason: "name" | "players" | "mixed" = "players";
 
     if (nameExact) {
       confidence = 1;
       reason = matched > 0 ? "mixed" : "name";
+    } else if (tagMatches && matched >= 1) {
+      confidence = 0.9;
+      reason = "mixed";
+    } else if (tagMatches) {
+      confidence = 0.75;
+      reason = "name";
     } else if (matched >= 2) {
       const denom = Math.max(extractedKeys.size, roster.size, 1);
       confidence = Math.min(0.95, matched / denom);
