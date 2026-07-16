@@ -77,23 +77,71 @@ function StandingsPage() {
 
   const handleExport = async () => {
     if (!exportRef.current) return;
+  const [logoDataUrls, setLogoDataUrls] = useState<Record<string, string>>({});
+
+  // Preload team logos as data URLs so the html-to-image export doesn't hit CORS
+  // and fail silently.
+  async function preloadLogos(rows: Row[]): Promise<Record<string, string>> {
+    const out: Record<string, string> = {};
+    await Promise.all(rows.map(async r => {
+      if (!r.logo_url) return;
+      try {
+        const signed = /^https?:/.test(r.logo_url) ? r.logo_url : await getLogoUrl(r.logo_url);
+        if (!signed) return;
+        const res = await fetch(signed);
+        if (!res.ok) return;
+        const blob = await res.blob();
+        const data = await new Promise<string>((res2, rej) => {
+          const fr = new FileReader();
+          fr.onload = () => res2(fr.result as string);
+          fr.onerror = rej;
+          fr.readAsDataURL(blob);
+        });
+        out[r.logo_url] = data;
+      } catch { /* ignore individual logo errors */ }
+    }));
+    return out;
+  }
+
+  const handleExport = async () => {
+    if (!exportRef.current) { toast.error("Export card not ready"); return; }
+    if (rows.length === 0) { toast.error("No results to export yet"); return; }
     setExporting(true);
     try {
+      const loaded = await preloadLogos(rows.slice(0, 12));
+      setLogoDataUrls(loaded);
+      // Wait a tick so the ExportCard re-renders with the inlined logos.
+      await new Promise(r => setTimeout(r, 100));
       const dataUrl = await toPng(exportRef.current, {
         cacheBust: true,
         pixelRatio: 2,
         backgroundColor: themeKey === "minimal-pastel" ? "#fafaff" : "#0b0c10",
+        skipFonts: true,
+        filter: (node) => {
+          // Skip any <img> that hasn't been converted to a data URL, to avoid
+          // canvas tainting from cross-origin storage responses.
+          if (node instanceof HTMLImageElement) {
+            return node.src.startsWith("data:");
+          }
+          return true;
+        },
       });
       const link = document.createElement("a");
       link.download = `tournament-standings-${themeKey}.png`;
       link.href = dataUrl;
+      document.body.appendChild(link);
       link.click();
+      link.remove();
+      toast.success("Standings exported");
     } catch (err) {
       console.error("Export failed", err);
+      toast.error(err instanceof Error ? `Export failed: ${err.message}` : "Export failed");
     } finally {
       setExporting(false);
     }
   };
+  // silence unused warnings for the setter that might change independently
+  useEffect(() => { void logoDataUrls; }, [logoDataUrls]);
 
   const top12 = rows.slice(0, 12);
 
