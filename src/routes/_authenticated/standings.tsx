@@ -38,11 +38,27 @@ function StandingsPage() {
   const [exporting, setExporting] = useState(false);
   const [tournamentId, setTournamentId] = useState<string>("");
   const [themeKey, setThemeKey] = useState<ThemeKey>(() => {
-    if (typeof window === "undefined") return "cyber-dark";
+    if (typeof window === "undefined") return "rankforge-default";
     const saved = window.localStorage.getItem(THEME_KEY_LS) as ThemeKey | null;
-    return saved && THEMES[saved] ? saved : "cyber-dark";
+    return saved && THEMES[saved] ? saved : "rankforge-default";
   });
   const theme = THEMES[themeKey];
+
+  const [sheetConfig, setSheetConfig] = useState<SheetConfig>(() => {
+    if (typeof window === "undefined") return DEFAULT_SHEET_CONFIG;
+    try {
+      const raw = window.localStorage.getItem(SHEET_CONFIG_LS);
+      if (raw) return { ...DEFAULT_SHEET_CONFIG, ...(JSON.parse(raw) as Partial<SheetConfig>) };
+    } catch { /* ignore */ }
+    return DEFAULT_SHEET_CONFIG;
+  });
+  function updateSheetConfig(patch: Partial<SheetConfig>) {
+    setSheetConfig(prev => {
+      const next = { ...prev, ...patch };
+      try { window.localStorage.setItem(SHEET_CONFIG_LS, JSON.stringify(next)); } catch { /* ignore */ }
+      return next;
+    });
+  }
 
   function selectTheme(k: ThemeKey) {
     setThemeKey(k);
