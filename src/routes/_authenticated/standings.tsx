@@ -457,3 +457,155 @@ const ExportCard = ({ ref, rows, theme, logoDataUrls }: { ref: React.Ref<HTMLDiv
     </div>
   );
 };
+
+/**
+ * RankForge Default Point Sheet — clean black & white broadcast-style layout.
+ * Columns: # | TEAM NAME | MP | WINS | PP | KP | TP
+ */
+const RankForgeSheet = ({ ref, rows, config }: { ref: React.Ref<HTMLDivElement>; rows: Row[]; config: SheetConfig }) => {
+  const slots: (Row | null)[] = Array.from({ length: 12 }, (_, i) => rows[i] ?? null);
+
+  const cellBase = {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontWeight: 800,
+    fontSize: 28,
+    letterSpacing: 1,
+  } as const;
+
+  const columns = "80px 1fr 110px 110px 110px 110px 130px";
+
+  return (
+    <div
+      ref={ref}
+      style={{
+        width: 1080,
+        minHeight: 1920,
+        background: config.bg,
+        color: "#000000",
+        fontFamily: "'Inter', system-ui, sans-serif",
+        padding: "72px 60px",
+        display: "flex",
+        flexDirection: "column",
+        boxSizing: "border-box",
+      }}
+    >
+      {/* Header text */}
+      <div style={{ textAlign: "center", marginBottom: 36 }}>
+        <div style={{ fontSize: 20, letterSpacing: 8, fontWeight: 700, textTransform: "uppercase", color: "#000000", opacity: 0.75 }}>
+          {config.subtitle || " "}
+        </div>
+        <div
+          style={{
+            fontSize: 72,
+            lineHeight: 1.05,
+            fontWeight: 900,
+            letterSpacing: 4,
+            textTransform: "uppercase",
+            marginTop: 8,
+            color: "#000000",
+          }}
+        >
+          {config.title || "Overall Standings"}
+        </div>
+        <div style={{ height: 6, width: 160, background: "#000000", margin: "18px auto 0" }} />
+      </div>
+
+      {/* Column header */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: columns,
+          background: "#000000",
+          color: "#ffffff",
+          border: "3px solid #000000",
+        }}
+      >
+        {["#", "TEAM NAME", "MP", "WINS", "PP", "KP", "TP"].map((h, idx) => (
+          <div
+            key={h}
+            style={{
+              ...cellBase,
+              padding: "18px 10px",
+              fontSize: 22,
+              letterSpacing: 2,
+              justifyContent: idx === 1 ? "flex-start" : "center",
+              paddingLeft: idx === 1 ? 24 : 10,
+              borderRight: idx < 6 ? "2px solid #ffffff" : "none",
+            }}
+          >
+            {h}
+          </div>
+        ))}
+      </div>
+
+      {/* Rows */}
+      <div style={{ display: "flex", flexDirection: "column", border: "3px solid #000000", borderTop: "none" }}>
+        {slots.map((r, i) => {
+          const rank = i + 1;
+          // Alternating band: even = white body / black rank; odd = black body / white rank
+          const zebra = i % 2 === 1;
+          const rowBg = zebra ? "#000000" : "#ffffff";
+          const rowFg = zebra ? "#ffffff" : "#000000";
+          const rankBg = zebra ? "#ffffff" : "#000000";
+          const rankFg = zebra ? "#000000" : "#ffffff";
+          const borderColor = zebra ? "#ffffff" : "#000000";
+          return (
+            <div
+              key={i}
+              style={{
+                display: "grid",
+                gridTemplateColumns: columns,
+                background: rowBg,
+                color: rowFg,
+                borderBottom: i < 11 ? "2px solid #000000" : "none",
+                minHeight: 74,
+              }}
+            >
+              <div
+                style={{
+                  ...cellBase,
+                  background: rankBg,
+                  color: rankFg,
+                  fontSize: 30,
+                }}
+              >
+                {String(rank).padStart(2, "0")}
+              </div>
+              <div
+                style={{
+                  ...cellBase,
+                  justifyContent: "flex-start",
+                  paddingLeft: 24,
+                  fontSize: 26,
+                  textTransform: "uppercase",
+                  letterSpacing: 1.5,
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  borderLeft: `2px solid ${borderColor}`,
+                  borderRight: `2px solid ${borderColor}`,
+                }}
+              >
+                {r?.team_name ?? "—"}
+              </div>
+              <div style={{ ...cellBase, borderRight: `2px solid ${borderColor}` }}>{r?.matches ?? 0}</div>
+              <div style={{ ...cellBase, borderRight: `2px solid ${borderColor}` }}>{r?.wins ?? 0}</div>
+              <div style={{ ...cellBase, borderRight: `2px solid ${borderColor}` }}>{r?.placement_points ?? 0}</div>
+              <div style={{ ...cellBase, borderRight: `2px solid ${borderColor}` }}>{r?.kill_points ?? 0}</div>
+              <div style={{ ...cellBase, fontSize: 32 }}>{r?.total ?? 0}</div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Footer */}
+      <div style={{ marginTop: "auto", paddingTop: 40, textAlign: "center" }}>
+        <div style={{ fontSize: 22, letterSpacing: 10, fontWeight: 900, textTransform: "uppercase", color: "#000000" }}>
+          BY RANKFORGE
+        </div>
+      </div>
+    </div>
+  );
+};
