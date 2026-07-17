@@ -307,7 +307,11 @@ function StandingsPage() {
 
       {/* Off-screen export canvas */}
       <div style={{ position: "fixed", left: "-10000px", top: 0, pointerEvents: "none" }} aria-hidden>
-        <ExportCard ref={exportRef} rows={top12} theme={theme} logoDataUrls={logoDataUrls} />
+        {themeKey === "rankforge-default" ? (
+          <RankForgeSheet ref={exportRef} rows={top12} config={sheetConfig} />
+        ) : (
+          <ExportCard ref={exportRef} rows={top12} theme={theme} logoDataUrls={logoDataUrls} />
+        )}
       </div>
     </div>
   );
