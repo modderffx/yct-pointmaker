@@ -779,44 +779,74 @@ function ManualMatchForm({
     return allTeams;
   }, [participants, allTeams]);
 
-  const [entries, setEntries] = useState(() =>
-    roster.map((t, i) => ({ team_id: t.id, team_name: t.name, short_name: t.short_name, placement: i + 1, kills: 0 }))
+  type Entry = { team_id: string; team_name: string; short_name: string | null; placement: number | null; kills: number | null };
+
+  const [entries, setEntries] = useState<Entry[]>(() =>
+    roster.map(t => ({ team_id: t.id, team_name: t.name, short_name: t.short_name, placement: null, kills: null }))
   );
 
   useEffect(() => {
     setEntries(prev => {
       const prevById = new Map(prev.map(e => [e.team_id, e]));
-      return roster.map((t, i) => {
+      return roster.map(t => {
         const p = prevById.get(t.id);
         return p
           ? { ...p, team_name: t.name, short_name: t.short_name }
-          : { team_id: t.id, team_name: t.name, short_name: t.short_name, placement: i + 1, kills: 0 };
+          : { team_id: t.id, team_name: t.name, short_name: t.short_name, placement: null, kills: null };
       });
     });
   }, [roster]);
 
-  const usedPlacements = new Map<number, number>();
-  for (const e of entries) usedPlacements.set(e.placement, (usedPlacements.get(e.placement) ?? 0) + 1);
-  const duplicates = Array.from(usedPlacements.entries()).filter(([, c]) => c > 1).map(([p]) => p);
-  const ready = entries.every(e => e.placement >= 1) && duplicates.length === 0;
+  // Selected team the user is entering right now (null = dashboard view)
+  const [activeIdx, setActiveIdx] = useState<number | null>(null);
+  const [draft, setDraft] = useState<{ placement: number | null; kills: number | null }>({ placement: null, kills: null });
 
-  function update(i: number, patch: Partial<typeof entries[number]>) {
-    setEntries(prev => { const arr = [...prev]; arr[i] = { ...arr[i], ...patch }; return arr; });
+  function openTeam(i: number) {
+    const e = entries[i];
+    setDraft({ placement: e.placement, kills: e.kills });
+    setActiveIdx(i);
+  }
+  function closeTeam() {
+    setActiveIdx(null);
+  }
+  function saveDraft(next: "close" | "next") {
+    if (activeIdx == null) return;
+    setEntries(prev => {
+      const arr = [...prev];
+      arr[activeIdx] = { ...arr[activeIdx], placement: draft.placement, kills: draft.kills };
+      return arr;
+    });
+    if (next === "close") { closeTeam(); return; }
+    // Move to next un-filled team, otherwise the next index, otherwise close
+    const nextUnfilled = entries.findIndex((e, i) => i !== activeIdx && (e.placement == null || e.kills == null));
+    if (nextUnfilled >= 0) openTeam(nextUnfilled);
+    else if (activeIdx + 1 < entries.length) openTeam(activeIdx + 1);
+    else closeTeam();
   }
 
-  const preview = [...entries]
-    .map(e => ({ ...e, ...calcPoints(e.placement, e.kills, placementMap, killValue) }))
-    .sort((a, b) => b.total_points - a.total_points || a.placement - b.placement);
+  const filledCount = entries.filter(e => e.placement != null && e.kills != null).length;
+  const usedPlacements = new Map<number, number>();
+  for (const e of entries) if (e.placement != null) usedPlacements.set(e.placement, (usedPlacements.get(e.placement) ?? 0) + 1);
+  const duplicates = Array.from(usedPlacements.entries()).filter(([, c]) => c > 1).map(([p]) => p);
+  const allFilled = filledCount === entries.length;
+  const ready = allFilled && duplicates.length === 0;
+
+  const activeEntry = activeIdx != null ? entries[activeIdx] : null;
+  const activePreview = activeEntry
+    ? calcPoints(draft.placement ?? 0, draft.kills ?? 0, placementMap, killValue)
+    : null;
 
   return (
     <div className="rounded-xl border border-border bg-card p-5 space-y-4">
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
-          <div className="text-xs uppercase tracking-widest text-gold">Manual · Active step</div>
+          <div className="text-xs uppercase tracking-widest text-gold">Manual · Team-by-Team</div>
           <h2 className="text-xl font-display font-bold">
             Enter results for Match {matchNumber} ({mapName})
           </h2>
-          <p className="text-xs text-muted-foreground">Type each team's total kills and finish placement. Points auto-calculate from your scoring rules.</p>
+          <p className="text-xs text-muted-foreground">
+            Click a team card to enter its placement and kills, then move to the next team. {filledCount}/{entries.length} teams entered.
+          </p>
         </div>
         <button onClick={onCancel} className="text-xs text-muted-foreground hover:text-foreground underline">
           Switch mode
@@ -829,68 +859,162 @@ function ManualMatchForm({
         </div>
       )}
 
-      <div className="rounded-lg border border-border overflow-hidden">
-        <div className="grid grid-cols-12 gap-2 px-3 py-2 text-[10px] uppercase tracking-wider text-muted-foreground bg-muted/30 border-b border-border">
-          <div className="col-span-5">Team</div>
-          <div className="col-span-2 text-center">Placement</div>
-          <div className="col-span-2 text-center">Kills</div>
-          <div className="col-span-3 text-right">Points (Plc + K = Total)</div>
-        </div>
-        {entries.map((e, i) => {
-          const pts = calcPoints(e.placement, e.kills, placementMap, killValue);
-          const dup = duplicates.includes(e.placement);
-          return (
-            <div key={e.team_id} className="grid grid-cols-12 gap-2 items-center px-3 py-2 border-b border-border/50 last:border-0">
-              <div className="col-span-5 min-w-0">
-                <div className="font-medium truncate">{e.team_name}</div>
-                {e.short_name && <div className="text-[10px] text-gold uppercase tracking-wider">{e.short_name}</div>}
+      {/* Dashboard view */}
+      {activeIdx === null && (
+        <>
+          <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-3">
+            {entries.map((e, i) => {
+              const filled = e.placement != null && e.kills != null;
+              const pts = filled ? calcPoints(e.placement!, e.kills!, placementMap, killValue) : null;
+              const dup = e.placement != null && duplicates.includes(e.placement);
+              return (
+                <button
+                  key={e.team_id}
+                  onClick={() => openTeam(i)}
+                  className={`text-left rounded-xl border p-4 transition ${
+                    filled
+                      ? dup
+                        ? "border-amber-500/60 bg-amber-500/5 hover:border-amber-500"
+                        : "border-gold/50 bg-gold/5 hover:border-gold"
+                      : "border-border bg-background hover:border-gold/40"
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="font-display font-bold truncate">{e.team_name}</div>
+                      {e.short_name && <div className="text-[10px] text-gold uppercase tracking-wider">{e.short_name}</div>}
+                    </div>
+                    {filled ? (
+                      <span className="text-[10px] uppercase tracking-wider text-gold font-semibold shrink-0">Done</span>
+                    ) : (
+                      <span className="text-[10px] uppercase tracking-wider text-muted-foreground shrink-0">Tap to enter</span>
+                    )}
+                  </div>
+                  {filled && pts ? (
+                    <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
+                      <div className="rounded-md bg-muted px-2 py-1">
+                        <div className="text-[9px] uppercase text-muted-foreground">Place</div>
+                        <div className="font-bold">#{e.placement}</div>
+                      </div>
+                      <div className="rounded-md bg-muted px-2 py-1">
+                        <div className="text-[9px] uppercase text-muted-foreground">Kills</div>
+                        <div className="font-bold">{e.kills}</div>
+                      </div>
+                      <div className="rounded-md bg-gold/10 border border-gold/30 px-2 py-1">
+                        <div className="text-[9px] uppercase text-gold">Total</div>
+                        <div className="font-bold text-gold">{pts.total_points}</div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mt-3 text-xs text-muted-foreground">No result entered.</div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          <Button
+            onClick={() => onSave(entries.map(e => ({
+              team_id: e.team_id, team_name: e.team_name,
+              placement: e.placement ?? 0, kills: e.kills ?? 0,
+            })))}
+            disabled={saving || !ready}
+            className="w-full bg-gradient-gold text-gold-foreground font-semibold"
+          >
+            {saving
+              ? "Saving…"
+              : !allFilled
+                ? `Enter ${entries.length - filledCount} more team${entries.length - filledCount === 1 ? "" : "s"} to continue`
+                : isFinal
+                  ? "Finalize Tournament Standings"
+                  : `Save Match ${matchNumber} & Continue`}
+          </Button>
+        </>
+      )}
+
+      {/* Single-team entry panel */}
+      {activeEntry && (
+        <div className="rounded-xl border border-gold/40 bg-background p-5 space-y-4">
+          <div className="flex items-start justify-between gap-3 flex-wrap">
+            <div className="min-w-0">
+              <div className="text-[11px] uppercase tracking-widest text-gold">
+                Team {activeIdx! + 1} of {entries.length}
               </div>
-              <div className="col-span-2">
-                <Input
-                  type="number" min={1} max={roster.length}
-                  value={e.placement}
-                  onChange={ev => update(i, { placement: Math.max(1, Number(ev.target.value) || 1) })}
-                  className={`h-9 text-center ${dup ? "border-amber-500" : ""}`}
-                />
+              <div className="font-display font-bold text-2xl truncate">{activeEntry.team_name}</div>
+              {activeEntry.short_name && (
+                <div className="text-xs text-gold uppercase tracking-wider">{activeEntry.short_name}</div>
+              )}
+            </div>
+            <button onClick={closeTeam} className="text-xs text-muted-foreground hover:text-foreground underline">
+              ← Back to teams
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <label className="space-y-1 block">
+              <span className="text-xs uppercase tracking-wider text-muted-foreground">Placement</span>
+              <Input
+                type="number" min={1} max={roster.length} autoFocus
+                value={draft.placement ?? ""}
+                onChange={ev => setDraft(d => ({
+                  ...d,
+                  placement: ev.target.value === "" ? null : Math.max(1, Number(ev.target.value) || 1),
+                }))}
+                placeholder="e.g. 1"
+                className="h-11 text-lg text-center font-display font-bold"
+              />
+            </label>
+            <label className="space-y-1 block">
+              <span className="text-xs uppercase tracking-wider text-muted-foreground">Kills</span>
+              <Input
+                type="number" min={0}
+                value={draft.kills ?? ""}
+                onChange={ev => setDraft(d => ({
+                  ...d,
+                  kills: ev.target.value === "" ? null : Math.max(0, Number(ev.target.value) || 0),
+                }))}
+                placeholder="e.g. 7"
+                className="h-11 text-lg text-center font-display font-bold"
+              />
+            </label>
+          </div>
+
+          {activePreview && (
+            <div className="grid grid-cols-3 gap-3 text-sm">
+              <div className="bg-muted rounded-md px-3 py-2">
+                <div className="text-[10px] uppercase text-muted-foreground">Placement pts</div>
+                <div className="font-semibold">{activePreview.placement_points}</div>
               </div>
-              <div className="col-span-2">
-                <Input
-                  type="number" min={0}
-                  value={e.kills}
-                  onChange={ev => update(i, { kills: Math.max(0, Number(ev.target.value) || 0) })}
-                  className="h-9 text-center"
-                />
+              <div className="bg-muted rounded-md px-3 py-2">
+                <div className="text-[10px] uppercase text-muted-foreground">Kill pts</div>
+                <div className="font-semibold">{activePreview.kill_points}</div>
               </div>
-              <div className="col-span-3 text-right text-sm">
-                <span className="text-muted-foreground">{pts.placement_points} + {pts.kill_points} = </span>
-                <span className="font-display font-bold text-gold">{pts.total_points}</span>
+              <div className="bg-gold/10 border border-gold/30 rounded-md px-3 py-2">
+                <div className="text-[10px] uppercase text-gold">Total</div>
+                <div className="font-semibold text-gold">{activePreview.total_points}</div>
               </div>
             </div>
-          );
-        })}
-      </div>
+          )}
 
-      <details className="rounded-lg border border-border bg-background/60">
-        <summary className="cursor-pointer text-xs uppercase tracking-widest text-muted-foreground px-3 py-2">
-          Preview standings for this match
-        </summary>
-        <div className="px-3 pb-3 space-y-1">
-          {preview.map((p, idx) => (
-            <div key={p.team_id} className="flex items-center justify-between text-sm">
-              <span><span className="text-gold font-bold mr-2">{idx + 1}</span>{p.team_name}</span>
-              <span className="font-bold text-gold">{p.total_points}</span>
-            </div>
-          ))}
+          <div className="flex flex-wrap gap-2">
+            <Button
+              onClick={() => saveDraft("next")}
+              disabled={draft.placement == null || draft.kills == null}
+              className="flex-1 bg-gradient-gold text-gold-foreground font-semibold"
+            >
+              Save & Next Team →
+            </Button>
+            <Button
+              onClick={() => saveDraft("close")}
+              disabled={draft.placement == null || draft.kills == null}
+              variant="outline"
+              className="flex-1"
+            >
+              Save & Back to Dashboard
+            </Button>
+          </div>
         </div>
-      </details>
-
-      <Button
-        onClick={() => onSave(entries.map(e => ({ team_id: e.team_id, team_name: e.team_name, placement: e.placement, kills: e.kills })))}
-        disabled={saving || !ready}
-        className="w-full bg-gradient-gold text-gold-foreground font-semibold"
-      >
-        {saving ? "Saving…" : isFinal ? "Finalize Tournament Standings" : `Save Match ${matchNumber} & Continue`}
-      </Button>
+      )}
     </div>
   );
 }
