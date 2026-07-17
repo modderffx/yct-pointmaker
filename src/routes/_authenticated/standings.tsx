@@ -6,7 +6,9 @@ import { Trophy, Download, Shield } from "lucide-react";
 import { toPng } from "html-to-image";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { getLogoUrl } from "@/lib/teams";
+import { compareTiebreak } from "@/lib/scoring";
 import { THEMES, THEME_LIST, type ExportTheme, type ThemeKey } from "@/lib/standings-themes";
 
 export const Route = createFileRoute("/_authenticated/standings")({
