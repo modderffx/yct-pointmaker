@@ -20,9 +20,18 @@ type Row = {
   team_id: string | null; team_name: string; logo_url: string | null;
   matches: number; placement_points: number; kill_points: number; kills: number; total: number;
   wins: number;
+  lastPlacement?: number;
 };
 
-const THEME_KEY_LS = "firearena.exportTheme";
+const THEME_KEY_LS = "rankforge.exportTheme";
+const SHEET_CONFIG_LS = "rankforge.sheetConfig";
+
+type SheetConfig = { bg: string; title: string; subtitle: string };
+const DEFAULT_SHEET_CONFIG: SheetConfig = {
+  bg: "#ffffff",
+  title: "OVERALL STANDINGS",
+  subtitle: "RANKFORGE TOURNAMENT",
+};
 
 function StandingsPage() {
   const exportRef = useRef<HTMLDivElement>(null);
