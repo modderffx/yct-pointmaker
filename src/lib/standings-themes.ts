@@ -1,4 +1,4 @@
-export type ThemeKey = "cyber-dark" | "esports-fire" | "minimal-pastel";
+export type ThemeKey = "rankforge-default" | "cyber-dark" | "esports-fire" | "minimal-pastel";
 
 export type PodiumStyle = { bg: string; border: string; glow: string };
 
