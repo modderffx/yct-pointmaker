@@ -345,26 +345,36 @@ function TournamentDetailPage() {
     }
   }
 
-  // Aggregate standings for this tournament
+  // Aggregate standings for this tournament (Free Fire official tie-breaker)
   const standings = useMemo(() => {
-    type Row = { team_id: string | null; team_name: string; matches: number; kills: number; placement_points: number; total: number; wins: number };
-    const map = new Map<string, Row>();
+    type Row = { team_id: string | null; team_name: string; matches: number; kills: number; placement_points: number; total: number; wins: number; lastPlacement?: number };
+    const matchNoById = new Map<string, number>();
+    for (const m of matches.data ?? []) matchNoById.set(m.id, m.match_number ?? 0);
+    const map = new Map<string, Row & { _lastMatchNo: number }>();
     for (const r of results.data ?? []) {
       const key = r.team_id ?? `raw:${r.team_name_raw}`;
       const team = r.team as { name: string; logo_url: string | null } | null;
+      const matchNo = matchNoById.get(r.match_id) ?? 0;
       const existing = map.get(key) ?? {
         team_id: r.team_id, team_name: team?.name ?? r.team_name_raw,
         matches: 0, kills: 0, placement_points: 0, total: 0, wins: 0,
+        lastPlacement: undefined, _lastMatchNo: -1,
       };
       existing.matches += 1;
       existing.kills += r.kills;
       existing.placement_points += r.placement_points;
       existing.total += r.total_points;
       if (r.placement === 1) existing.wins += 1;
+      if (matchNo >= existing._lastMatchNo) {
+        existing._lastMatchNo = matchNo;
+        existing.lastPlacement = r.placement;
+      }
       map.set(key, existing);
     }
-    return Array.from(map.values()).sort((a, b) => b.total - a.total || b.wins - a.wins || b.kills - a.kills);
-  }, [results.data]);
+    return Array.from(map.values())
+      .map(({ _lastMatchNo, ...rest }) => { void _lastMatchNo; return rest as Row; })
+      .sort(compareTiebreak);
+  }, [results.data, matches.data]);
 
   if (tournament.isLoading) return <div className="text-sm text-muted-foreground">Loading…</div>;
   if (!tournament.data) return <div className="text-sm text-muted-foreground">Tournament not found.</div>;
