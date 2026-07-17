@@ -6,7 +6,9 @@ import { Trophy, Download, Shield } from "lucide-react";
 import { toPng } from "html-to-image";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { getLogoUrl } from "@/lib/teams";
+import { compareTiebreak } from "@/lib/scoring";
 import { THEMES, THEME_LIST, type ExportTheme, type ThemeKey } from "@/lib/standings-themes";
 
 export const Route = createFileRoute("/_authenticated/standings")({
@@ -18,20 +20,45 @@ type Row = {
   team_id: string | null; team_name: string; logo_url: string | null;
   matches: number; placement_points: number; kill_points: number; kills: number; total: number;
   wins: number;
+  lastPlacement?: number;
 };
 
-const THEME_KEY_LS = "firearena.exportTheme";
+const THEME_KEY_LS = "rankforge.exportTheme";
+const SHEET_CONFIG_LS = "rankforge.sheetConfig";
+
+type SheetConfig = { bg: string; title: string; subtitle: string };
+const DEFAULT_SHEET_CONFIG: SheetConfig = {
+  bg: "#ffffff",
+  title: "OVERALL STANDINGS",
+  subtitle: "RANKFORGE TOURNAMENT",
+};
 
 function StandingsPage() {
   const exportRef = useRef<HTMLDivElement>(null);
   const [exporting, setExporting] = useState(false);
   const [tournamentId, setTournamentId] = useState<string>("");
   const [themeKey, setThemeKey] = useState<ThemeKey>(() => {
-    if (typeof window === "undefined") return "cyber-dark";
+    if (typeof window === "undefined") return "rankforge-default";
     const saved = window.localStorage.getItem(THEME_KEY_LS) as ThemeKey | null;
-    return saved && THEMES[saved] ? saved : "cyber-dark";
+    return saved && THEMES[saved] ? saved : "rankforge-default";
   });
   const theme = THEMES[themeKey];
+
+  const [sheetConfig, setSheetConfig] = useState<SheetConfig>(() => {
+    if (typeof window === "undefined") return DEFAULT_SHEET_CONFIG;
+    try {
+      const raw = window.localStorage.getItem(SHEET_CONFIG_LS);
+      if (raw) return { ...DEFAULT_SHEET_CONFIG, ...(JSON.parse(raw) as Partial<SheetConfig>) };
+    } catch { /* ignore */ }
+    return DEFAULT_SHEET_CONFIG;
+  });
+  function updateSheetConfig(patch: Partial<SheetConfig>) {
+    setSheetConfig(prev => {
+      const next = { ...prev, ...patch };
+      try { window.localStorage.setItem(SHEET_CONFIG_LS, JSON.stringify(next)); } catch { /* ignore */ }
+      return next;
+    });
+  }
 
   function selectTheme(k: ThemeKey) {
     setThemeKey(k);
@@ -48,7 +75,7 @@ function StandingsPage() {
     queryFn: async () => {
       let q = supabase
         .from("match_results")
-        .select("team_id,team_name_raw,placement,kills,placement_points,kill_points,total_points,team:teams(name,logo_url),match:matches!inner(tournament_id)");
+        .select("team_id,team_name_raw,placement,kills,placement_points,kill_points,total_points,team:teams(name,logo_url),match:matches!inner(tournament_id,match_number,played_at)");
       if (tournamentId) q = q.eq("match.tournament_id", tournamentId);
       const { data: results } = await q;
       return results ?? [];
@@ -56,13 +83,16 @@ function StandingsPage() {
   });
 
   const rows: Row[] = useMemo(() => {
-    const map = new Map<string, Row>();
+    const map = new Map<string, Row & { _lastMatchNo: number }>();
     for (const r of data.data ?? []) {
       const key = r.team_id ?? `raw:${r.team_name_raw}`;
       const team = r.team as { name: string; logo_url: string | null } | null;
+      const matchInfo = r.match as { match_number?: number } | null;
+      const matchNo = matchInfo?.match_number ?? 0;
       const existing = map.get(key) ?? {
         team_id: r.team_id, team_name: team?.name ?? r.team_name_raw, logo_url: team?.logo_url ?? null,
         matches: 0, placement_points: 0, kill_points: 0, kills: 0, total: 0, wins: 0,
+        lastPlacement: undefined, _lastMatchNo: -1,
       };
       existing.matches += 1;
       existing.placement_points += r.placement_points;
@@ -70,9 +100,15 @@ function StandingsPage() {
       existing.kills += r.kills;
       existing.total += r.total_points;
       if (r.placement === 1) existing.wins += 1;
+      if (matchNo >= existing._lastMatchNo) {
+        existing._lastMatchNo = matchNo;
+        existing.lastPlacement = r.placement;
+      }
       map.set(key, existing);
     }
-    return Array.from(map.values()).sort((a, b) => b.total - a.total || b.wins - a.wins || b.kills - a.kills);
+    return Array.from(map.values())
+      .map(({ _lastMatchNo, ...rest }) => { void _lastMatchNo; return rest as Row; })
+      .sort(compareTiebreak);
   }, [data.data]);
 
   const [logoDataUrls, setLogoDataUrls] = useState<Record<string, string>>({});
@@ -113,7 +149,7 @@ function StandingsPage() {
       const dataUrl = await toPng(exportRef.current, {
         cacheBust: true,
         pixelRatio: 2,
-        backgroundColor: themeKey === "minimal-pastel" ? "#fafaff" : "#0b0c10",
+        backgroundColor: themeKey === "rankforge-default" ? sheetConfig.bg : themeKey === "minimal-pastel" ? "#fafaff" : "#0b0c10",
         skipFonts: true,
         filter: (node) => {
           // Skip any <img> that hasn't been converted to a data URL, to avoid
@@ -196,6 +232,53 @@ function StandingsPage() {
         </div>
       </div>
 
+      {/* Edit Sheet controls — only for the RankForge Default Sheet */}
+      {themeKey === "rankforge-default" && (
+        <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+          <div>
+            <div className="text-xs uppercase tracking-widest text-muted-foreground">Live edit</div>
+            <div className="font-display font-semibold">Edit Sheet</div>
+            <div className="text-xs text-muted-foreground">Customize the RankForge Default Sheet before exporting.</div>
+          </div>
+          <div className="grid md:grid-cols-3 gap-3">
+            <label className="space-y-1 block">
+              <span className="text-xs uppercase tracking-wider text-muted-foreground">Background color</span>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={sheetConfig.bg}
+                  onChange={e => updateSheetConfig({ bg: e.target.value })}
+                  className="h-9 w-12 rounded-md border border-border bg-transparent cursor-pointer"
+                />
+                <Input
+                  value={sheetConfig.bg}
+                  onChange={e => updateSheetConfig({ bg: e.target.value })}
+                  className="h-9 flex-1 font-mono text-xs"
+                />
+              </div>
+            </label>
+            <label className="space-y-1 block md:col-span-1">
+              <span className="text-xs uppercase tracking-wider text-muted-foreground">Text 1 (Title)</span>
+              <Input
+                value={sheetConfig.title}
+                onChange={e => updateSheetConfig({ title: e.target.value })}
+                placeholder="Overall Standings"
+                className="h-9"
+              />
+            </label>
+            <label className="space-y-1 block md:col-span-1">
+              <span className="text-xs uppercase tracking-wider text-muted-foreground">Text 2 (Subtitle)</span>
+              <Input
+                value={sheetConfig.subtitle}
+                onChange={e => updateSheetConfig({ subtitle: e.target.value })}
+                placeholder="Tournament name"
+                className="h-9"
+              />
+            </label>
+          </div>
+        </div>
+      )}
+
       <div className="rounded-xl border border-border bg-card overflow-hidden">
         <div className="grid grid-cols-12 gap-2 px-4 py-3 text-[11px] uppercase tracking-wider text-muted-foreground border-b border-border bg-muted/30">
           <div className="col-span-1">#</div>
@@ -224,7 +307,11 @@ function StandingsPage() {
 
       {/* Off-screen export canvas */}
       <div style={{ position: "fixed", left: "-10000px", top: 0, pointerEvents: "none" }} aria-hidden>
-        <ExportCard ref={exportRef} rows={top12} theme={theme} logoDataUrls={logoDataUrls} />
+        {themeKey === "rankforge-default" ? (
+          <RankForgeSheet ref={exportRef} rows={top12} config={sheetConfig} />
+        ) : (
+          <ExportCard ref={exportRef} rows={top12} theme={theme} logoDataUrls={logoDataUrls} />
+        )}
       </div>
     </div>
   );
@@ -366,6 +453,158 @@ const ExportCard = ({ ref, rows, theme, logoDataUrls }: { ref: React.Ref<HTMLDiv
           Generated automatically by YCT PointMaker AI
         </div>
         <div style={{ color: theme.footerMuted }}>yct-pointmaker.app</div>
+      </div>
+    </div>
+  );
+};
+
+/**
+ * RankForge Default Point Sheet — clean black & white broadcast-style layout.
+ * Columns: # | TEAM NAME | MP | WINS | PP | KP | TP
+ */
+const RankForgeSheet = ({ ref, rows, config }: { ref: React.Ref<HTMLDivElement>; rows: Row[]; config: SheetConfig }) => {
+  const slots: (Row | null)[] = Array.from({ length: 12 }, (_, i) => rows[i] ?? null);
+
+  const cellBase = {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontWeight: 800,
+    fontSize: 28,
+    letterSpacing: 1,
+  } as const;
+
+  const columns = "80px 1fr 110px 110px 110px 110px 130px";
+
+  return (
+    <div
+      ref={ref}
+      style={{
+        width: 1080,
+        minHeight: 1920,
+        background: config.bg,
+        color: "#000000",
+        fontFamily: "'Inter', system-ui, sans-serif",
+        padding: "72px 60px",
+        display: "flex",
+        flexDirection: "column",
+        boxSizing: "border-box",
+      }}
+    >
+      {/* Header text */}
+      <div style={{ textAlign: "center", marginBottom: 36 }}>
+        <div style={{ fontSize: 20, letterSpacing: 8, fontWeight: 700, textTransform: "uppercase", color: "#000000", opacity: 0.75 }}>
+          {config.subtitle || " "}
+        </div>
+        <div
+          style={{
+            fontSize: 72,
+            lineHeight: 1.05,
+            fontWeight: 900,
+            letterSpacing: 4,
+            textTransform: "uppercase",
+            marginTop: 8,
+            color: "#000000",
+          }}
+        >
+          {config.title || "Overall Standings"}
+        </div>
+        <div style={{ height: 6, width: 160, background: "#000000", margin: "18px auto 0" }} />
+      </div>
+
+      {/* Column header */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: columns,
+          background: "#000000",
+          color: "#ffffff",
+          border: "3px solid #000000",
+        }}
+      >
+        {["#", "TEAM NAME", "MP", "WINS", "PP", "KP", "TP"].map((h, idx) => (
+          <div
+            key={h}
+            style={{
+              ...cellBase,
+              padding: "18px 10px",
+              fontSize: 22,
+              letterSpacing: 2,
+              justifyContent: idx === 1 ? "flex-start" : "center",
+              paddingLeft: idx === 1 ? 24 : 10,
+              borderRight: idx < 6 ? "2px solid #ffffff" : "none",
+            }}
+          >
+            {h}
+          </div>
+        ))}
+      </div>
+
+      {/* Rows */}
+      <div style={{ display: "flex", flexDirection: "column", border: "3px solid #000000", borderTop: "none" }}>
+        {slots.map((r, i) => {
+          const rank = i + 1;
+          // Alternating band: even = white body / black rank; odd = black body / white rank
+          const zebra = i % 2 === 1;
+          const rowBg = zebra ? "#000000" : "#ffffff";
+          const rowFg = zebra ? "#ffffff" : "#000000";
+          const rankBg = zebra ? "#ffffff" : "#000000";
+          const rankFg = zebra ? "#000000" : "#ffffff";
+          const borderColor = zebra ? "#ffffff" : "#000000";
+          return (
+            <div
+              key={i}
+              style={{
+                display: "grid",
+                gridTemplateColumns: columns,
+                background: rowBg,
+                color: rowFg,
+                borderBottom: i < 11 ? "2px solid #000000" : "none",
+                minHeight: 74,
+              }}
+            >
+              <div
+                style={{
+                  ...cellBase,
+                  background: rankBg,
+                  color: rankFg,
+                  fontSize: 30,
+                }}
+              >
+                {String(rank).padStart(2, "0")}
+              </div>
+              <div
+                style={{
+                  ...cellBase,
+                  justifyContent: "flex-start",
+                  paddingLeft: 24,
+                  fontSize: 26,
+                  textTransform: "uppercase",
+                  letterSpacing: 1.5,
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  borderLeft: `2px solid ${borderColor}`,
+                  borderRight: `2px solid ${borderColor}`,
+                }}
+              >
+                {r?.team_name ?? "—"}
+              </div>
+              <div style={{ ...cellBase, borderRight: `2px solid ${borderColor}` }}>{r?.matches ?? 0}</div>
+              <div style={{ ...cellBase, borderRight: `2px solid ${borderColor}` }}>{r?.wins ?? 0}</div>
+              <div style={{ ...cellBase, borderRight: `2px solid ${borderColor}` }}>{r?.placement_points ?? 0}</div>
+              <div style={{ ...cellBase, borderRight: `2px solid ${borderColor}` }}>{r?.kill_points ?? 0}</div>
+              <div style={{ ...cellBase, fontSize: 32 }}>{r?.total ?? 0}</div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Footer */}
+      <div style={{ marginTop: "auto", paddingTop: 40, textAlign: "center" }}>
+        <div style={{ fontSize: 22, letterSpacing: 10, fontWeight: 900, textTransform: "uppercase", color: "#000000" }}>
+          BY RANKFORGE
+        </div>
       </div>
     </div>
   );

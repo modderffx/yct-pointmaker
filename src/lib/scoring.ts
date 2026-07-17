@@ -1,5 +1,29 @@
 export type PlacementMap = Record<string, number>;
 
+export type TiebreakRow = {
+  total: number;
+  wins: number;
+  kills: number;
+  /** Placement in most recent match (lower is better). Use Infinity when unknown. */
+  lastPlacement?: number;
+};
+
+/**
+ * Official Free Fire tie-breaker order:
+ *   1) Total Points (desc)
+ *   2) Total Booyahs / Wins (desc)
+ *   3) Total Kill Points / Kills (desc)
+ *   4) Most Recent Match Placement (asc — lower is better)
+ */
+export function compareTiebreak(a: TiebreakRow, b: TiebreakRow) {
+  if (b.total !== a.total) return b.total - a.total;
+  if (b.wins !== a.wins) return b.wins - a.wins;
+  if (b.kills !== a.kills) return b.kills - a.kills;
+  const al = a.lastPlacement ?? Infinity;
+  const bl = b.lastPlacement ?? Infinity;
+  return al - bl;
+}
+
 export const DEFAULT_PLACEMENT: PlacementMap = {
   "1": 12, "2": 9, "3": 8, "4": 7, "5": 6, "6": 5,
   "7": 4, "8": 3, "9": 2, "10": 1, "11": 0, "12": 0,
