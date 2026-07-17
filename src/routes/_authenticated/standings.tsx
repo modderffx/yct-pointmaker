@@ -75,7 +75,7 @@ function StandingsPage() {
     queryFn: async () => {
       let q = supabase
         .from("match_results")
-        .select("team_id,team_name_raw,placement,kills,placement_points,kill_points,total_points,team:teams(name,logo_url),match:matches!inner(tournament_id)");
+        .select("team_id,team_name_raw,placement,kills,placement_points,kill_points,total_points,team:teams(name,logo_url),match:matches!inner(tournament_id,match_number,played_at)");
       if (tournamentId) q = q.eq("match.tournament_id", tournamentId);
       const { data: results } = await q;
       return results ?? [];
@@ -83,13 +83,16 @@ function StandingsPage() {
   });
 
   const rows: Row[] = useMemo(() => {
-    const map = new Map<string, Row>();
+    const map = new Map<string, Row & { _lastMatchNo: number }>();
     for (const r of data.data ?? []) {
       const key = r.team_id ?? `raw:${r.team_name_raw}`;
       const team = r.team as { name: string; logo_url: string | null } | null;
+      const matchInfo = r.match as { match_number?: number } | null;
+      const matchNo = matchInfo?.match_number ?? 0;
       const existing = map.get(key) ?? {
         team_id: r.team_id, team_name: team?.name ?? r.team_name_raw, logo_url: team?.logo_url ?? null,
         matches: 0, placement_points: 0, kill_points: 0, kills: 0, total: 0, wins: 0,
+        lastPlacement: undefined, _lastMatchNo: -1,
       };
       existing.matches += 1;
       existing.placement_points += r.placement_points;
@@ -97,9 +100,15 @@ function StandingsPage() {
       existing.kills += r.kills;
       existing.total += r.total_points;
       if (r.placement === 1) existing.wins += 1;
+      if (matchNo >= existing._lastMatchNo) {
+        existing._lastMatchNo = matchNo;
+        existing.lastPlacement = r.placement;
+      }
       map.set(key, existing);
     }
-    return Array.from(map.values()).sort((a, b) => b.total - a.total || b.wins - a.wins || b.kills - a.kills);
+    return Array.from(map.values())
+      .map(({ _lastMatchNo, ...rest }) => { void _lastMatchNo; return rest as Row; })
+      .sort(compareTiebreak);
   }, [data.data]);
 
   const [logoDataUrls, setLogoDataUrls] = useState<Record<string, string>>({});
