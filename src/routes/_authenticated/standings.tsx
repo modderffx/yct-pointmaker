@@ -149,7 +149,7 @@ function StandingsPage() {
       const dataUrl = await toPng(exportRef.current, {
         cacheBust: true,
         pixelRatio: 2,
-        backgroundColor: themeKey === "minimal-pastel" ? "#fafaff" : "#0b0c10",
+        backgroundColor: themeKey === "rankforge-default" ? sheetConfig.bg : themeKey === "minimal-pastel" ? "#fafaff" : "#0b0c10",
         skipFonts: true,
         filter: (node) => {
           // Skip any <img> that hasn't been converted to a data URL, to avoid
