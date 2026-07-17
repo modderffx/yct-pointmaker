@@ -8,7 +8,7 @@ import { Upload, Sparkles, X, Plus, Check, Trophy, Map as MapIcon, ArrowLeft, Us
 import { toast } from "sonner";
 import { extractMatchFromScreenshots } from "@/lib/ocr.functions";
 import { useServerFn } from "@tanstack/react-start";
-import { calcPoints, DEFAULT_PLACEMENT, matchTeamByPlayers, mergePlayers, type PlacementMap } from "@/lib/scoring";
+import { calcPoints, compareTiebreak, DEFAULT_PLACEMENT, matchTeamByPlayers, mergePlayers, type PlacementMap } from "@/lib/scoring";
 import { uploadTeamLogo } from "@/lib/teams";
 
 export const Route = createFileRoute("/_authenticated/tournaments/$id")({
