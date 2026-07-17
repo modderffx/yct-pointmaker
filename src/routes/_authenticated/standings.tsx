@@ -232,6 +232,53 @@ function StandingsPage() {
         </div>
       </div>
 
+      {/* Edit Sheet controls — only for the RankForge Default Sheet */}
+      {themeKey === "rankforge-default" && (
+        <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+          <div>
+            <div className="text-xs uppercase tracking-widest text-muted-foreground">Live edit</div>
+            <div className="font-display font-semibold">Edit Sheet</div>
+            <div className="text-xs text-muted-foreground">Customize the RankForge Default Sheet before exporting.</div>
+          </div>
+          <div className="grid md:grid-cols-3 gap-3">
+            <label className="space-y-1 block">
+              <span className="text-xs uppercase tracking-wider text-muted-foreground">Background color</span>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={sheetConfig.bg}
+                  onChange={e => updateSheetConfig({ bg: e.target.value })}
+                  className="h-9 w-12 rounded-md border border-border bg-transparent cursor-pointer"
+                />
+                <Input
+                  value={sheetConfig.bg}
+                  onChange={e => updateSheetConfig({ bg: e.target.value })}
+                  className="h-9 flex-1 font-mono text-xs"
+                />
+              </div>
+            </label>
+            <label className="space-y-1 block md:col-span-1">
+              <span className="text-xs uppercase tracking-wider text-muted-foreground">Text 1 (Title)</span>
+              <Input
+                value={sheetConfig.title}
+                onChange={e => updateSheetConfig({ title: e.target.value })}
+                placeholder="Overall Standings"
+                className="h-9"
+              />
+            </label>
+            <label className="space-y-1 block md:col-span-1">
+              <span className="text-xs uppercase tracking-wider text-muted-foreground">Text 2 (Subtitle)</span>
+              <Input
+                value={sheetConfig.subtitle}
+                onChange={e => updateSheetConfig({ subtitle: e.target.value })}
+                placeholder="Tournament name"
+                className="h-9"
+              />
+            </label>
+          </div>
+        </div>
+      )}
+
       <div className="rounded-xl border border-border bg-card overflow-hidden">
         <div className="grid grid-cols-12 gap-2 px-4 py-3 text-[11px] uppercase tracking-wider text-muted-foreground border-b border-border bg-muted/30">
           <div className="col-span-1">#</div>
