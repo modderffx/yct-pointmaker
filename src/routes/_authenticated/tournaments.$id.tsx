@@ -797,44 +797,32 @@ function ManualMatchForm({
     });
   }, [roster]);
 
-  // Selected team the user is entering right now (null = dashboard view)
-  const [activeIdx, setActiveIdx] = useState<number | null>(null);
+  // Team currently selected in the dropdown ("" = nothing selected yet)
+  const [selectedId, setSelectedId] = useState<string>("");
   const [draft, setDraft] = useState<{ placement: number | null; kills: number | null }>({ placement: null, kills: null });
 
-  function openTeam(i: number) {
-    const e = entries[i];
-    setDraft({ placement: e.placement, kills: e.kills });
-    setActiveIdx(i);
-  }
-  function closeTeam() {
-    setActiveIdx(null);
-  }
-  function saveDraft(next: "close" | "next") {
-    if (activeIdx == null) return;
-    setEntries(prev => {
-      const arr = [...prev];
-      arr[activeIdx] = { ...arr[activeIdx], placement: draft.placement, kills: draft.kills };
-      return arr;
-    });
-    if (next === "close") { closeTeam(); return; }
-    // Move to next un-filled team, otherwise the next index, otherwise close
-    const nextUnfilled = entries.findIndex((e, i) => i !== activeIdx && (e.placement == null || e.kills == null));
-    if (nextUnfilled >= 0) openTeam(nextUnfilled);
-    else if (activeIdx + 1 < entries.length) openTeam(activeIdx + 1);
-    else closeTeam();
-  }
-
   const filledCount = entries.filter(e => e.placement != null && e.kills != null).length;
+  const remaining = entries.filter(e => e.placement == null || e.kills == null);
+
   const usedPlacements = new Map<number, number>();
   for (const e of entries) if (e.placement != null) usedPlacements.set(e.placement, (usedPlacements.get(e.placement) ?? 0) + 1);
   const duplicates = Array.from(usedPlacements.entries()).filter(([, c]) => c > 1).map(([p]) => p);
-  const allFilled = filledCount === entries.length;
+  const allFilled = filledCount === entries.length && entries.length > 0;
   const ready = allFilled && duplicates.length === 0;
 
-  const activeEntry = activeIdx != null ? entries[activeIdx] : null;
-  const activePreview = activeEntry
-    ? calcPoints(draft.placement ?? 0, draft.kills ?? 0, placementMap, killValue)
-    : null;
+  const activeEntry = entries.find(e => e.team_id === selectedId) ?? null;
+  const preview = calcPoints(draft.placement ?? 0, draft.kills ?? 0, placementMap, killValue);
+
+  function saveCurrent() {
+    if (!activeEntry) return;
+    if (draft.placement == null || draft.kills == null) return;
+    setEntries(prev => prev.map(e =>
+      e.team_id === activeEntry.team_id ? { ...e, placement: draft.placement, kills: draft.kills } : e
+    ));
+    // Reset back to the dropdown view with blank inputs — no auto-selection.
+    setSelectedId("");
+    setDraft({ placement: null, kills: null });
+  }
 
   return (
     <div className="rounded-xl border border-border bg-card p-5 space-y-4">
@@ -845,7 +833,7 @@ function ManualMatchForm({
             Enter results for Match {matchNumber} ({mapName})
           </h2>
           <p className="text-xs text-muted-foreground">
-            Click a team card to enter its placement and kills, then move to the next team. {filledCount}/{entries.length} teams entered.
+            Pick a team, enter placement and kills, then save. {filledCount}/{entries.length} teams entered.
           </p>
         </div>
         <button onClick={onCancel} className="text-xs text-muted-foreground hover:text-foreground underline">
@@ -859,97 +847,31 @@ function ManualMatchForm({
         </div>
       )}
 
-      {/* Dashboard view */}
-      {activeIdx === null && (
-        <>
-          <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-3">
-            {entries.map((e, i) => {
-              const filled = e.placement != null && e.kills != null;
-              const pts = filled ? calcPoints(e.placement!, e.kills!, placementMap, killValue) : null;
-              const dup = e.placement != null && duplicates.includes(e.placement);
-              return (
-                <button
-                  key={e.team_id}
-                  onClick={() => openTeam(i)}
-                  className={`text-left rounded-xl border p-4 transition ${
-                    filled
-                      ? dup
-                        ? "border-amber-500/60 bg-amber-500/5 hover:border-amber-500"
-                        : "border-gold/50 bg-gold/5 hover:border-gold"
-                      : "border-border bg-background hover:border-gold/40"
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <div className="font-display font-bold truncate">{e.team_name}</div>
-                      {e.short_name && <div className="text-[10px] text-gold uppercase tracking-wider">{e.short_name}</div>}
-                    </div>
-                    {filled ? (
-                      <span className="text-[10px] uppercase tracking-wider text-gold font-semibold shrink-0">Done</span>
-                    ) : (
-                      <span className="text-[10px] uppercase tracking-wider text-muted-foreground shrink-0">Tap to enter</span>
-                    )}
-                  </div>
-                  {filled && pts ? (
-                    <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
-                      <div className="rounded-md bg-muted px-2 py-1">
-                        <div className="text-[9px] uppercase text-muted-foreground">Place</div>
-                        <div className="font-bold">#{e.placement}</div>
-                      </div>
-                      <div className="rounded-md bg-muted px-2 py-1">
-                        <div className="text-[9px] uppercase text-muted-foreground">Kills</div>
-                        <div className="font-bold">{e.kills}</div>
-                      </div>
-                      <div className="rounded-md bg-gold/10 border border-gold/30 px-2 py-1">
-                        <div className="text-[9px] uppercase text-gold">Total</div>
-                        <div className="font-bold text-gold">{pts.total_points}</div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="mt-3 text-xs text-muted-foreground">No result entered.</div>
-                  )}
-                </button>
-              );
-            })}
-          </div>
+      {/* Team selector */}
+      <label className="block space-y-1.5">
+        <span className="text-xs uppercase tracking-wider text-muted-foreground">Select team</span>
+        <select
+          value={selectedId}
+          onChange={ev => {
+            setSelectedId(ev.target.value);
+            setDraft({ placement: null, kills: null });
+          }}
+          className="w-full h-11 rounded-md border border-border bg-background px-3 text-base font-medium outline-none focus:border-gold"
+        >
+          <option value="">
+            {remaining.length > 0 ? `Choose a team (${remaining.length} left)…` : "All teams entered"}
+          </option>
+          {remaining.map(e => (
+            <option key={e.team_id} value={e.team_id}>
+              {e.team_name}{e.short_name ? ` (${e.short_name})` : ""}
+            </option>
+          ))}
+        </select>
+      </label>
 
-          <Button
-            onClick={() => onSave(entries.map(e => ({
-              team_id: e.team_id, team_name: e.team_name,
-              placement: e.placement ?? 0, kills: e.kills ?? 0,
-            })))}
-            disabled={saving || !ready}
-            className="w-full bg-gradient-gold text-gold-foreground font-semibold"
-          >
-            {saving
-              ? "Saving…"
-              : !allFilled
-                ? `Enter ${entries.length - filledCount} more team${entries.length - filledCount === 1 ? "" : "s"} to continue`
-                : isFinal
-                  ? "Finalize Tournament Standings"
-                  : `Save Match ${matchNumber} & Continue`}
-          </Button>
-        </>
-      )}
-
-      {/* Single-team entry panel */}
+      {/* Entry fields for the selected team */}
       {activeEntry && (
-        <div className="rounded-xl border border-gold/40 bg-background p-5 space-y-4">
-          <div className="flex items-start justify-between gap-3 flex-wrap">
-            <div className="min-w-0">
-              <div className="text-[11px] uppercase tracking-widest text-gold">
-                Team {activeIdx! + 1} of {entries.length}
-              </div>
-              <div className="font-display font-bold text-2xl truncate">{activeEntry.team_name}</div>
-              {activeEntry.short_name && (
-                <div className="text-xs text-gold uppercase tracking-wider">{activeEntry.short_name}</div>
-              )}
-            </div>
-            <button onClick={closeTeam} className="text-xs text-muted-foreground hover:text-foreground underline">
-              ← Back to teams
-            </button>
-          </div>
-
+        <div className="rounded-xl border border-gold/40 bg-background p-4 space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <label className="space-y-1 block">
               <span className="text-xs uppercase tracking-wider text-muted-foreground">Placement</span>
@@ -979,42 +901,80 @@ function ManualMatchForm({
             </label>
           </div>
 
-          {activePreview && (
-            <div className="grid grid-cols-3 gap-3 text-sm">
-              <div className="bg-muted rounded-md px-3 py-2">
-                <div className="text-[10px] uppercase text-muted-foreground">Placement pts</div>
-                <div className="font-semibold">{activePreview.placement_points}</div>
-              </div>
-              <div className="bg-muted rounded-md px-3 py-2">
-                <div className="text-[10px] uppercase text-muted-foreground">Kill pts</div>
-                <div className="font-semibold">{activePreview.kill_points}</div>
-              </div>
-              <div className="bg-gold/10 border border-gold/30 rounded-md px-3 py-2">
-                <div className="text-[10px] uppercase text-gold">Total</div>
-                <div className="font-semibold text-gold">{activePreview.total_points}</div>
-              </div>
+          <div className="grid grid-cols-3 gap-3 text-sm">
+            <div className="bg-muted rounded-md px-3 py-2">
+              <div className="text-[10px] uppercase text-muted-foreground">Placement pts</div>
+              <div className="font-semibold">{preview.placement_points}</div>
             </div>
-          )}
+            <div className="bg-muted rounded-md px-3 py-2">
+              <div className="text-[10px] uppercase text-muted-foreground">Kill pts</div>
+              <div className="font-semibold">{preview.kill_points}</div>
+            </div>
+            <div className="bg-gold/10 border border-gold/30 rounded-md px-3 py-2">
+              <div className="text-[10px] uppercase text-gold">Total</div>
+              <div className="font-semibold text-gold">{preview.total_points}</div>
+            </div>
+          </div>
 
-          <div className="flex flex-wrap gap-2">
-            <Button
-              onClick={() => saveDraft("next")}
-              disabled={draft.placement == null || draft.kills == null}
-              className="flex-1 bg-gradient-gold text-gold-foreground font-semibold"
-            >
-              Save & Next Team →
-            </Button>
-            <Button
-              onClick={() => saveDraft("close")}
-              disabled={draft.placement == null || draft.kills == null}
-              variant="outline"
-              className="flex-1"
-            >
-              Save & Back to Dashboard
-            </Button>
+          <Button
+            onClick={saveCurrent}
+            disabled={draft.placement == null || draft.kills == null}
+            className="w-full bg-gradient-gold text-gold-foreground font-semibold"
+          >
+            Save &amp; Next Team →
+          </Button>
+        </div>
+      )}
+
+      {/* Entered teams summary */}
+      {filledCount > 0 && (
+        <div className="space-y-1.5">
+          <div className="text-xs uppercase tracking-wider text-muted-foreground">Entered</div>
+          <div className="rounded-lg border border-border overflow-hidden">
+            {entries.filter(e => e.placement != null && e.kills != null).map(e => {
+              const dup = e.placement != null && duplicates.includes(e.placement);
+              return (
+                <div key={e.team_id} className={`flex items-center justify-between gap-3 px-3 py-2 text-sm border-b border-border/50 last:border-0 ${dup ? "bg-amber-500/10" : ""}`}>
+                  <span className="truncate font-medium">{e.team_name}</span>
+                  <span className="flex items-center gap-3 shrink-0 text-xs">
+                    <span className="text-muted-foreground">#{e.placement} · {e.kills}k</span>
+                    <span className="font-display font-bold text-gold">
+                      {calcPoints(e.placement!, e.kills!, placementMap, killValue).total_points}
+                    </span>
+                    <button
+                      onClick={() => {
+                        setSelectedId(e.team_id);
+                        setDraft({ placement: e.placement, kills: e.kills });
+                        setEntries(prev => prev.map(x => x.team_id === e.team_id ? { ...x, placement: null, kills: null } : x));
+                      }}
+                      className="text-muted-foreground hover:text-foreground underline"
+                    >
+                      Edit
+                    </button>
+                  </span>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
+
+      <Button
+        onClick={() => onSave(entries.map(e => ({
+          team_id: e.team_id, team_name: e.team_name,
+          placement: e.placement ?? 0, kills: e.kills ?? 0,
+        })))}
+        disabled={saving || !ready}
+        className="w-full bg-gradient-gold text-gold-foreground font-semibold"
+      >
+        {saving
+          ? "Saving…"
+          : !allFilled
+            ? `Enter ${entries.length - filledCount} more team${entries.length - filledCount === 1 ? "" : "s"} to continue`
+            : isFinal
+              ? "Finalize Tournament Standings"
+              : `Save Match ${matchNumber} & Continue`}
+      </Button>
     </div>
   );
 }
