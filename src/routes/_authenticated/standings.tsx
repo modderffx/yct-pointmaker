@@ -144,29 +144,53 @@ function StandingsPage() {
     try {
       const loaded = await preloadLogos(rows.slice(0, 12));
       setLogoDataUrls(loaded);
-      // Wait a tick so the ExportCard re-renders with the inlined logos.
-      await new Promise(r => setTimeout(r, 100));
-      const dataUrl = await toPng(exportRef.current, {
+      // Wait for fonts + a couple of frames so the card is fully laid out.
+      try { await (document as Document & { fonts?: FontFaceSet }).fonts?.ready; } catch { /* noop */ }
+      await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(() => r(null))));
+      await new Promise(r => setTimeout(r, 150));
+
+      const node = exportRef.current;
+      const width = node.offsetWidth || 1080;
+      const height = node.scrollHeight || 1920;
+      const bg = themeKey === "rankforge-default"
+        ? sheetConfig.bg
+        : themeKey === "minimal-pastel" ? "#fafaff" : "#0b0c10";
+
+      const options = {
         cacheBust: true,
         pixelRatio: 2,
-        backgroundColor: themeKey === "rankforge-default" ? sheetConfig.bg : themeKey === "minimal-pastel" ? "#fafaff" : "#0b0c10",
+        width,
+        height,
+        canvasWidth: width * 2,
+        canvasHeight: height * 2,
+        backgroundColor: bg,
         skipFonts: true,
-        filter: (node) => {
+        style: { margin: "0", transform: "none" },
+        filter: (n: HTMLElement) => {
           // Skip any <img> that hasn't been converted to a data URL, to avoid
           // canvas tainting from cross-origin storage responses.
-          if (node instanceof HTMLImageElement) {
-            return node.src.startsWith("data:");
-          }
+          if (n instanceof HTMLImageElement) return n.src.startsWith("data:");
           return true;
         },
-      });
+      };
+
+      // First html-to-image pass can miss freshly-inlined images/styles; the
+      // warm-up render makes the second pass deterministic.
+      await toBlob(node, options).catch(() => null);
+      let blob = await toBlob(node, options);
+      if (!blob) blob = await toBlob(node, { ...options, pixelRatio: 1, canvasWidth: width, canvasHeight: height });
+      if (!blob) throw new Error("Renderer returned an empty image");
+
+      const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
-      link.download = `tournament-standings-${themeKey}.png`;
-      link.href = dataUrl;
+      link.download = `rankforge-standings-${themeKey}-${new Date().toISOString().slice(0, 10)}.png`;
+      link.href = url;
+      link.rel = "noopener";
       document.body.appendChild(link);
       link.click();
       link.remove();
-      toast.success("Standings exported");
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+      toast.success("Sheet downloaded");
     } catch (err) {
       console.error("Export failed", err);
       toast.error(err instanceof Error ? `Export failed: ${err.message}` : "Export failed");
@@ -174,6 +198,7 @@ function StandingsPage() {
       setExporting(false);
     }
   };
+
   // silence unused warnings for the setter that might change independently
   useEffect(() => { void logoDataUrls; }, [logoDataUrls]);
 
