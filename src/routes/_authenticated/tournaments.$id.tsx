@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Upload, Sparkles, X, Plus, Check, Trophy, Map as MapIcon, ArrowLeft, Users, ChevronDown, ChevronUp, RotateCcw, Crosshair } from "lucide-react";
+import { Upload, Sparkles, X, Plus, Check, Trophy, Map as MapIcon, ArrowLeft, Users, ChevronDown, ChevronUp, RotateCcw, Crosshair, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { extractMatchFromScreenshots } from "@/lib/ocr.functions";
 import { useServerFn } from "@tanstack/react-start";
@@ -799,10 +799,14 @@ function ManualMatchForm({
 
   // Team currently selected in the dropdown ("" = nothing selected yet)
   const [selectedId, setSelectedId] = useState<string>("");
+  const [editingId, setEditingId] = useState<string>("");
   const [draft, setDraft] = useState<{ placement: number | null; kills: number | null }>({ placement: null, kills: null });
 
   const filledCount = entries.filter(e => e.placement != null && e.kills != null).length;
-  const remaining = entries.filter(e => e.placement == null || e.kills == null);
+  const scored = entries.filter(e => e.placement != null && e.kills != null);
+  const remaining = entries.filter(e =>
+    (e.placement == null || e.kills == null) || e.team_id === editingId
+  );
 
   const usedPlacements = new Map<number, number>();
   for (const e of entries) if (e.placement != null) usedPlacements.set(e.placement, (usedPlacements.get(e.placement) ?? 0) + 1);
@@ -812,6 +816,7 @@ function ManualMatchForm({
 
   const activeEntry = entries.find(e => e.team_id === selectedId) ?? null;
   const preview = calcPoints(draft.placement ?? 0, draft.kills ?? 0, placementMap, killValue);
+  const isEditing = !!editingId && editingId === selectedId;
 
   function saveCurrent() {
     if (!activeEntry) return;
@@ -821,8 +826,16 @@ function ManualMatchForm({
     ));
     // Reset back to the dropdown view with blank inputs — no auto-selection.
     setSelectedId("");
+    setEditingId("");
     setDraft({ placement: null, kills: null });
   }
+
+  function startEdit(teamId: string, placement: number | null, kills: number | null) {
+    setEditingId(teamId);
+    setSelectedId(teamId);
+    setDraft({ placement, kills });
+  }
+
 
   return (
     <div className="rounded-xl border border-border bg-card p-5 space-y-4">
@@ -849,18 +862,28 @@ function ManualMatchForm({
 
       {/* Team selector */}
       <label className="block space-y-1.5">
-        <span className="text-xs uppercase tracking-wider text-muted-foreground">Select team</span>
+        <span className="text-xs uppercase tracking-wider text-muted-foreground">
+          {isEditing ? "Editing team" : "Select team"}
+        </span>
         <select
           value={selectedId}
           onChange={ev => {
-            setSelectedId(ev.target.value);
-            setDraft({ placement: null, kills: null });
+            const id = ev.target.value;
+            setSelectedId(id);
+            setEditingId("");
+            const target = entries.find(e => e.team_id === id);
+            const alreadyScored = !!target && target.placement != null && target.kills != null;
+            setDraft(alreadyScored ? { placement: target!.placement, kills: target!.kills } : { placement: null, kills: null });
+            if (alreadyScored) setEditingId(id);
           }}
           className="w-full h-11 rounded-md border border-border bg-background px-3 text-base font-medium outline-none focus:border-gold"
         >
           <option value="">
-            {remaining.length > 0 ? `Choose a team (${remaining.length} left)…` : "All teams entered"}
+            {remaining.filter(e => e.placement == null || e.kills == null).length > 0
+              ? `Choose a team (${remaining.filter(e => e.placement == null || e.kills == null).length} left)…`
+              : "All teams entered"}
           </option>
+
           {remaining.map(e => (
             <option key={e.team_id} value={e.team_id}>
               {e.team_name}{e.short_name ? ` (${e.short_name})` : ""}
@@ -916,25 +939,38 @@ function ManualMatchForm({
             </div>
           </div>
 
-          <Button
-            onClick={saveCurrent}
-            disabled={draft.placement == null || draft.kills == null}
-            className="w-full bg-gradient-gold text-gold-foreground font-semibold"
-          >
-            Save &amp; Next Team →
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={saveCurrent}
+              disabled={draft.placement == null || draft.kills == null}
+              className="flex-1 bg-gradient-gold text-gold-foreground font-semibold"
+            >
+              {isEditing ? "Update Team Data" : "Save & Next Team →"}
+            </Button>
+            {isEditing && (
+              <Button
+                variant="outline"
+                onClick={() => { setSelectedId(""); setEditingId(""); setDraft({ placement: null, kills: null }); }}
+              >
+                Cancel
+              </Button>
+            )}
+          </div>
         </div>
       )}
 
-      {/* Entered teams summary */}
+      {/* Active match summary — scored teams with inline edit */}
       {filledCount > 0 && (
         <div className="space-y-1.5">
-          <div className="text-xs uppercase tracking-wider text-muted-foreground">Entered</div>
+          <div className="text-xs uppercase tracking-wider text-muted-foreground">
+            Scored Teams ({filledCount}/{entries.length})
+          </div>
           <div className="rounded-lg border border-border overflow-hidden">
-            {entries.filter(e => e.placement != null && e.kills != null).map(e => {
+            {scored.map(e => {
               const dup = e.placement != null && duplicates.includes(e.placement);
+              const active = editingId === e.team_id;
               return (
-                <div key={e.team_id} className={`flex items-center justify-between gap-3 px-3 py-2 text-sm border-b border-border/50 last:border-0 ${dup ? "bg-amber-500/10" : ""}`}>
+                <div key={e.team_id} className={`flex items-center justify-between gap-3 px-3 py-2 text-sm border-b border-border/50 last:border-0 ${dup ? "bg-amber-500/10" : active ? "bg-gold/10" : ""}`}>
                   <span className="truncate font-medium">{e.team_name}</span>
                   <span className="flex items-center gap-3 shrink-0 text-xs">
                     <span className="text-muted-foreground">#{e.placement} · {e.kills}k</span>
@@ -942,14 +978,12 @@ function ManualMatchForm({
                       {calcPoints(e.placement!, e.kills!, placementMap, killValue).total_points}
                     </span>
                     <button
-                      onClick={() => {
-                        setSelectedId(e.team_id);
-                        setDraft({ placement: e.placement, kills: e.kills });
-                        setEntries(prev => prev.map(x => x.team_id === e.team_id ? { ...x, placement: null, kills: null } : x));
-                      }}
-                      className="text-muted-foreground hover:text-foreground underline"
+                      type="button"
+                      aria-label={`Edit ${e.team_name}`}
+                      onClick={() => startEdit(e.team_id, e.placement, e.kills)}
+                      className="p-1.5 rounded-md border border-border text-muted-foreground hover:text-gold hover:border-gold/50"
                     >
-                      Edit
+                      <Pencil className="w-3.5 h-3.5" />
                     </button>
                   </span>
                 </div>
@@ -958,6 +992,7 @@ function ManualMatchForm({
           </div>
         </div>
       )}
+
 
       <Button
         onClick={() => onSave(entries.map(e => ({
