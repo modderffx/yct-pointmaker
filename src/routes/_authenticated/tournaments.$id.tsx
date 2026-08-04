@@ -799,10 +799,14 @@ function ManualMatchForm({
 
   // Team currently selected in the dropdown ("" = nothing selected yet)
   const [selectedId, setSelectedId] = useState<string>("");
+  const [editingId, setEditingId] = useState<string>("");
   const [draft, setDraft] = useState<{ placement: number | null; kills: number | null }>({ placement: null, kills: null });
 
   const filledCount = entries.filter(e => e.placement != null && e.kills != null).length;
-  const remaining = entries.filter(e => e.placement == null || e.kills == null);
+  const scored = entries.filter(e => e.placement != null && e.kills != null);
+  const remaining = entries.filter(e =>
+    (e.placement == null || e.kills == null) || e.team_id === editingId
+  );
 
   const usedPlacements = new Map<number, number>();
   for (const e of entries) if (e.placement != null) usedPlacements.set(e.placement, (usedPlacements.get(e.placement) ?? 0) + 1);
@@ -812,6 +816,7 @@ function ManualMatchForm({
 
   const activeEntry = entries.find(e => e.team_id === selectedId) ?? null;
   const preview = calcPoints(draft.placement ?? 0, draft.kills ?? 0, placementMap, killValue);
+  const isEditing = !!editingId && editingId === selectedId;
 
   function saveCurrent() {
     if (!activeEntry) return;
@@ -821,8 +826,16 @@ function ManualMatchForm({
     ));
     // Reset back to the dropdown view with blank inputs — no auto-selection.
     setSelectedId("");
+    setEditingId("");
     setDraft({ placement: null, kills: null });
   }
+
+  function startEdit(teamId: string, placement: number | null, kills: number | null) {
+    setEditingId(teamId);
+    setSelectedId(teamId);
+    setDraft({ placement, kills });
+  }
+
 
   return (
     <div className="rounded-xl border border-border bg-card p-5 space-y-4">
