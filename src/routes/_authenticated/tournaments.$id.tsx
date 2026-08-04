@@ -862,18 +862,28 @@ function ManualMatchForm({
 
       {/* Team selector */}
       <label className="block space-y-1.5">
-        <span className="text-xs uppercase tracking-wider text-muted-foreground">Select team</span>
+        <span className="text-xs uppercase tracking-wider text-muted-foreground">
+          {isEditing ? "Editing team" : "Select team"}
+        </span>
         <select
           value={selectedId}
           onChange={ev => {
-            setSelectedId(ev.target.value);
-            setDraft({ placement: null, kills: null });
+            const id = ev.target.value;
+            setSelectedId(id);
+            setEditingId("");
+            const target = entries.find(e => e.team_id === id);
+            const alreadyScored = !!target && target.placement != null && target.kills != null;
+            setDraft(alreadyScored ? { placement: target!.placement, kills: target!.kills } : { placement: null, kills: null });
+            if (alreadyScored) setEditingId(id);
           }}
           className="w-full h-11 rounded-md border border-border bg-background px-3 text-base font-medium outline-none focus:border-gold"
         >
           <option value="">
-            {remaining.length > 0 ? `Choose a team (${remaining.length} left)…` : "All teams entered"}
+            {remaining.filter(e => e.placement == null || e.kills == null).length > 0
+              ? `Choose a team (${remaining.filter(e => e.placement == null || e.kills == null).length} left)…`
+              : "All teams entered"}
           </option>
+
           {remaining.map(e => (
             <option key={e.team_id} value={e.team_id}>
               {e.team_name}{e.short_name ? ` (${e.short_name})` : ""}
