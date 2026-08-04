@@ -232,7 +232,7 @@ function StandingsPage() {
           </div>
           <Button onClick={handleExport} disabled={exporting || rows.length === 0} className="bg-gold text-black hover:bg-gold/90 font-display">
             <Download className="w-4 h-4 mr-2" />
-            {exporting ? "Exporting…" : "Export Standings"}
+            {exporting ? "Rendering…" : "Download Sheet"}
           </Button>
         </div>
         <div className="grid sm:grid-cols-3 gap-2">
