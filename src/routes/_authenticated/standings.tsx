@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { getLogoUrl } from "@/lib/teams";
 import { compareTiebreak } from "@/lib/scoring";
 import { THEMES, THEME_LIST, type ExportTheme, type ThemeKey } from "@/lib/standings-themes";
+import { loadBrandProfile } from "@/lib/brand-profile";
 
 export const Route = createFileRoute("/_authenticated/standings")({
   head: () => ({ meta: [{ title: "Standings — RankForge" }] }),
@@ -27,37 +28,50 @@ const THEME_KEY_LS = "rankforge.exportTheme";
 const SHEET_CONFIG_LS = "rankforge.sheetConfig";
 
 type SheetConfig = { bg: string; title: string; subtitle: string };
-const DEFAULT_SHEET_CONFIG: SheetConfig = {
-  bg: "#ffffff",
-  title: "OVERALL STANDINGS",
-  subtitle: "RANKFORGE TOURNAMENT",
-};
+
+function initialSheetConfig(): SheetConfig {
+  const profile = loadBrandProfile();
+  const fallback: SheetConfig = { bg: profile.bg, title: profile.orgName, subtitle: profile.subtitle };
+  if (typeof window === "undefined") return fallback;
+  try {
+    const raw = window.localStorage.getItem(SHEET_CONFIG_LS);
+    if (raw) return { ...fallback, ...(JSON.parse(raw) as Partial<SheetConfig>) };
+  } catch { /* ignore */ }
+  return fallback;
+}
 
 function StandingsPage() {
   const exportRef = useRef<HTMLDivElement>(null);
   const [exporting, setExporting] = useState(false);
   const [tournamentId, setTournamentId] = useState<string>("");
+  const [brandLogo, setBrandLogo] = useState<string | null>(null);
   const [themeKey, setThemeKey] = useState<ThemeKey>(() => {
     if (typeof window === "undefined") return "rankforge-default";
     const saved = window.localStorage.getItem(THEME_KEY_LS) as ThemeKey | null;
-    return saved && THEMES[saved] ? saved : "rankforge-default";
+    if (saved && THEMES[saved]) return saved;
+    const profileTheme = loadBrandProfile().themeKey;
+    return THEMES[profileTheme] ? profileTheme : "rankforge-default";
   });
   const theme = THEMES[themeKey];
 
-  const [sheetConfig, setSheetConfig] = useState<SheetConfig>(() => {
-    if (typeof window === "undefined") return DEFAULT_SHEET_CONFIG;
-    try {
-      const raw = window.localStorage.getItem(SHEET_CONFIG_LS);
-      if (raw) return { ...DEFAULT_SHEET_CONFIG, ...(JSON.parse(raw) as Partial<SheetConfig>) };
-    } catch { /* ignore */ }
-    return DEFAULT_SHEET_CONFIG;
-  });
+  const [sheetConfig, setSheetConfig] = useState<SheetConfig>(initialSheetConfig);
+
+  // Apply saved branding defaults (logo) once mounted
+  useEffect(() => { setBrandLogo(loadBrandProfile().logoDataUrl); }, []);
+
   function updateSheetConfig(patch: Partial<SheetConfig>) {
     setSheetConfig(prev => {
       const next = { ...prev, ...patch };
       try { window.localStorage.setItem(SHEET_CONFIG_LS, JSON.stringify(next)); } catch { /* ignore */ }
       return next;
     });
+  }
+
+  function resetToBrandDefaults() {
+    const p = loadBrandProfile();
+    updateSheetConfig({ bg: p.bg, title: p.orgName, subtitle: p.subtitle });
+    setBrandLogo(p.logoDataUrl);
+    selectTheme(THEMES[p.themeKey] ? p.themeKey : "rankforge-default");
   }
 
   function selectTheme(k: ThemeKey) {
@@ -260,10 +274,13 @@ function StandingsPage() {
       {/* Edit Sheet controls — only for the RankForge Default Sheet */}
       {themeKey === "rankforge-default" && (
         <div className="rounded-xl border border-border bg-card p-4 space-y-3">
-          <div>
-            <div className="text-xs uppercase tracking-widest text-muted-foreground">Live edit</div>
-            <div className="font-display font-semibold">Edit Sheet</div>
-            <div className="text-xs text-muted-foreground">Customize the RankForge Default Sheet before exporting.</div>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="text-xs uppercase tracking-widest text-muted-foreground">Live edit</div>
+              <div className="font-display font-semibold">Edit Sheet</div>
+              <div className="text-xs text-muted-foreground">Customize the RankForge Default Sheet before exporting.</div>
+            </div>
+            <Button variant="outline" size="sm" onClick={resetToBrandDefaults}>Use brand defaults</Button>
           </div>
           <div className="grid md:grid-cols-3 gap-3">
             <label className="space-y-1 block">
@@ -333,16 +350,16 @@ function StandingsPage() {
       {/* Off-screen export canvas */}
       <div style={{ position: "fixed", left: "-10000px", top: 0, pointerEvents: "none" }} aria-hidden>
         {themeKey === "rankforge-default" ? (
-          <RankForgeSheet ref={exportRef} rows={top12} config={sheetConfig} />
+          <RankForgeSheet ref={exportRef} rows={top12} config={sheetConfig} brandLogo={brandLogo} />
         ) : (
-          <ExportCard ref={exportRef} rows={top12} theme={theme} logoDataUrls={logoDataUrls} />
+          <ExportCard ref={exportRef} rows={top12} theme={theme} logoDataUrls={logoDataUrls} brandLogo={brandLogo} />
         )}
       </div>
     </div>
   );
 }
 
-const ExportCard = ({ ref, rows, theme, logoDataUrls }: { ref: React.Ref<HTMLDivElement>; rows: Row[]; theme: ExportTheme; logoDataUrls: Record<string, string> }) => {
+const ExportCard = ({ ref, rows, theme, logoDataUrls, brandLogo }: { ref: React.Ref<HTMLDivElement>; rows: Row[]; theme: ExportTheme; logoDataUrls: Record<string, string>; brandLogo?: string | null }) => {
   const slots: (Row | null)[] = Array.from({ length: 12 }, (_, i) => rows[i] ?? null);
 
   return (
@@ -362,9 +379,13 @@ const ExportCard = ({ ref, rows, theme, logoDataUrls }: { ref: React.Ref<HTMLDiv
     >
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <div style={{ width: 56, height: 56, borderRadius: 12, background: theme.iconBg, display: "grid", placeItems: "center", boxShadow: "0 0 30px rgba(0,0,0,0.25)" }}>
-            <Trophy size={32} color={theme.iconColor} strokeWidth={2.5} />
-          </div>
+          {brandLogo ? (
+            <img src={brandLogo} alt="" style={{ width: 72, height: 72, objectFit: "contain" }} />
+          ) : (
+            <div style={{ width: 56, height: 56, borderRadius: 12, background: theme.iconBg, display: "grid", placeItems: "center", boxShadow: "0 0 30px rgba(0,0,0,0.25)" }}>
+              <Trophy size={32} color={theme.iconColor} strokeWidth={2.5} />
+            </div>
+          )}
           <div style={{ fontSize: 28, fontWeight: 700, letterSpacing: 4, color: theme.brandLabelColor, textTransform: "uppercase" }}>
             {theme.brandLabel}
           </div>
@@ -487,7 +508,7 @@ const ExportCard = ({ ref, rows, theme, logoDataUrls }: { ref: React.Ref<HTMLDiv
  * RankForge Default Point Sheet — clean black & white broadcast-style layout.
  * Columns: # | TEAM NAME | MP | WINS | PP | KP | TP
  */
-const RankForgeSheet = ({ ref, rows, config }: { ref: React.Ref<HTMLDivElement>; rows: Row[]; config: SheetConfig }) => {
+const RankForgeSheet = ({ ref, rows, config, brandLogo }: { ref: React.Ref<HTMLDivElement>; rows: Row[]; config: SheetConfig; brandLogo?: string | null }) => {
   const slots: (Row | null)[] = Array.from({ length: 12 }, (_, i) => rows[i] ?? null);
 
   const cellBase = {
@@ -518,6 +539,13 @@ const RankForgeSheet = ({ ref, rows, config }: { ref: React.Ref<HTMLDivElement>;
     >
       {/* Header text */}
       <div style={{ textAlign: "center", marginBottom: 36 }}>
+        {brandLogo && (
+          <img
+            src={brandLogo}
+            alt=""
+            style={{ width: 140, height: 140, objectFit: "contain", display: "block", margin: "0 auto 20px" }}
+          />
+        )}
         <div style={{ fontSize: 20, letterSpacing: 8, fontWeight: 700, textTransform: "uppercase", color: "#000000", opacity: 0.75 }}>
           {config.subtitle || " "}
         </div>

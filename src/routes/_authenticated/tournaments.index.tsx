@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Trophy, Plus, Map as MapIcon, Users, Trash2, CheckSquare, Square, X } from "lucide-react";
 import { toast } from "sonner";
 import { SERIES_MAPS, type SeriesType } from "@/lib/tournaments";
+import { loadBrandProfile } from "@/lib/brand-profile";
 
 export const Route = createFileRoute("/_authenticated/tournaments/")({
   head: () => ({ meta: [{ title: "Tournaments — YCT PointMaker" }] }),
@@ -159,6 +160,15 @@ function TournamentsPage() {
         participants: enriched as unknown as never,
       }).select().single();
       if (error) throw error;
+      // Auto-populate the point sheet with the organizer's saved branding defaults
+      try {
+        const profile = loadBrandProfile();
+        window.localStorage.setItem("rankforge.exportTheme", profile.themeKey);
+        window.localStorage.setItem(
+          "rankforge.sheetConfig",
+          JSON.stringify({ bg: profile.bg, title: profile.orgName, subtitle: profile.subtitle || name.trim().toUpperCase() }),
+        );
+      } catch { /* ignore */ }
       toast.success(`Tournament created · ${enriched.length} teams registered`);
       qc.invalidateQueries();
       setName("");
