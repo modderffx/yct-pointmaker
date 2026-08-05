@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { getLogoUrl } from "@/lib/teams";
 import { compareTiebreak } from "@/lib/scoring";
 import { THEMES, THEME_LIST, type ExportTheme, type ThemeKey } from "@/lib/standings-themes";
+import { loadBrandProfile } from "@/lib/brand-profile";
 
 export const Route = createFileRoute("/_authenticated/standings")({
   head: () => ({ meta: [{ title: "Standings — RankForge" }] }),
