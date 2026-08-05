@@ -376,9 +376,13 @@ const ExportCard = ({ ref, rows, theme, logoDataUrls, brandLogo }: { ref: React.
     >
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <div style={{ width: 56, height: 56, borderRadius: 12, background: theme.iconBg, display: "grid", placeItems: "center", boxShadow: "0 0 30px rgba(0,0,0,0.25)" }}>
-            <Trophy size={32} color={theme.iconColor} strokeWidth={2.5} />
-          </div>
+          {brandLogo ? (
+            <img src={brandLogo} alt="" style={{ width: 72, height: 72, objectFit: "contain" }} />
+          ) : (
+            <div style={{ width: 56, height: 56, borderRadius: 12, background: theme.iconBg, display: "grid", placeItems: "center", boxShadow: "0 0 30px rgba(0,0,0,0.25)" }}>
+              <Trophy size={32} color={theme.iconColor} strokeWidth={2.5} />
+            </div>
+          )}
           <div style={{ fontSize: 28, fontWeight: 700, letterSpacing: 4, color: theme.brandLabelColor, textTransform: "uppercase" }}>
             {theme.brandLabel}
           </div>
