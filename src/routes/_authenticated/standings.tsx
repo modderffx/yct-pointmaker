@@ -27,37 +27,50 @@ const THEME_KEY_LS = "rankforge.exportTheme";
 const SHEET_CONFIG_LS = "rankforge.sheetConfig";
 
 type SheetConfig = { bg: string; title: string; subtitle: string };
-const DEFAULT_SHEET_CONFIG: SheetConfig = {
-  bg: "#ffffff",
-  title: "OVERALL STANDINGS",
-  subtitle: "RANKFORGE TOURNAMENT",
-};
+
+function initialSheetConfig(): SheetConfig {
+  const profile = loadBrandProfile();
+  const fallback: SheetConfig = { bg: profile.bg, title: profile.orgName, subtitle: profile.subtitle };
+  if (typeof window === "undefined") return fallback;
+  try {
+    const raw = window.localStorage.getItem(SHEET_CONFIG_LS);
+    if (raw) return { ...fallback, ...(JSON.parse(raw) as Partial<SheetConfig>) };
+  } catch { /* ignore */ }
+  return fallback;
+}
 
 function StandingsPage() {
   const exportRef = useRef<HTMLDivElement>(null);
   const [exporting, setExporting] = useState(false);
   const [tournamentId, setTournamentId] = useState<string>("");
+  const [brandLogo, setBrandLogo] = useState<string | null>(null);
   const [themeKey, setThemeKey] = useState<ThemeKey>(() => {
     if (typeof window === "undefined") return "rankforge-default";
     const saved = window.localStorage.getItem(THEME_KEY_LS) as ThemeKey | null;
-    return saved && THEMES[saved] ? saved : "rankforge-default";
+    if (saved && THEMES[saved]) return saved;
+    const profileTheme = loadBrandProfile().themeKey;
+    return THEMES[profileTheme] ? profileTheme : "rankforge-default";
   });
   const theme = THEMES[themeKey];
 
-  const [sheetConfig, setSheetConfig] = useState<SheetConfig>(() => {
-    if (typeof window === "undefined") return DEFAULT_SHEET_CONFIG;
-    try {
-      const raw = window.localStorage.getItem(SHEET_CONFIG_LS);
-      if (raw) return { ...DEFAULT_SHEET_CONFIG, ...(JSON.parse(raw) as Partial<SheetConfig>) };
-    } catch { /* ignore */ }
-    return DEFAULT_SHEET_CONFIG;
-  });
+  const [sheetConfig, setSheetConfig] = useState<SheetConfig>(initialSheetConfig);
+
+  // Apply saved branding defaults (logo) once mounted
+  useEffect(() => { setBrandLogo(loadBrandProfile().logoDataUrl); }, []);
+
   function updateSheetConfig(patch: Partial<SheetConfig>) {
     setSheetConfig(prev => {
       const next = { ...prev, ...patch };
       try { window.localStorage.setItem(SHEET_CONFIG_LS, JSON.stringify(next)); } catch { /* ignore */ }
       return next;
     });
+  }
+
+  function resetToBrandDefaults() {
+    const p = loadBrandProfile();
+    updateSheetConfig({ bg: p.bg, title: p.orgName, subtitle: p.subtitle });
+    setBrandLogo(p.logoDataUrl);
+    selectTheme(THEMES[p.themeKey] ? p.themeKey : "rankforge-default");
   }
 
   function selectTheme(k: ThemeKey) {
