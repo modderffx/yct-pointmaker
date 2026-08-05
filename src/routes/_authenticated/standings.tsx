@@ -274,10 +274,13 @@ function StandingsPage() {
       {/* Edit Sheet controls — only for the RankForge Default Sheet */}
       {themeKey === "rankforge-default" && (
         <div className="rounded-xl border border-border bg-card p-4 space-y-3">
-          <div>
-            <div className="text-xs uppercase tracking-widest text-muted-foreground">Live edit</div>
-            <div className="font-display font-semibold">Edit Sheet</div>
-            <div className="text-xs text-muted-foreground">Customize the RankForge Default Sheet before exporting.</div>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="text-xs uppercase tracking-widest text-muted-foreground">Live edit</div>
+              <div className="font-display font-semibold">Edit Sheet</div>
+              <div className="text-xs text-muted-foreground">Customize the RankForge Default Sheet before exporting.</div>
+            </div>
+            <Button variant="outline" size="sm" onClick={resetToBrandDefaults}>Use brand defaults</Button>
           </div>
           <div className="grid md:grid-cols-3 gap-3">
             <label className="space-y-1 block">
