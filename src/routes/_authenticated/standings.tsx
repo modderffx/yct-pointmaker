@@ -501,7 +501,7 @@ const ExportCard = ({ ref, rows, theme, logoDataUrls, brandLogo }: { ref: React.
  * RankForge Default Point Sheet — clean black & white broadcast-style layout.
  * Columns: # | TEAM NAME | MP | WINS | PP | KP | TP
  */
-const RankForgeSheet = ({ ref, rows, config }: { ref: React.Ref<HTMLDivElement>; rows: Row[]; config: SheetConfig }) => {
+const RankForgeSheet = ({ ref, rows, config, brandLogo }: { ref: React.Ref<HTMLDivElement>; rows: Row[]; config: SheetConfig; brandLogo?: string | null }) => {
   const slots: (Row | null)[] = Array.from({ length: 12 }, (_, i) => rows[i] ?? null);
 
   const cellBase = {
@@ -532,6 +532,13 @@ const RankForgeSheet = ({ ref, rows, config }: { ref: React.Ref<HTMLDivElement>;
     >
       {/* Header text */}
       <div style={{ textAlign: "center", marginBottom: 36 }}>
+        {brandLogo && (
+          <img
+            src={brandLogo}
+            alt=""
+            style={{ width: 140, height: 140, objectFit: "contain", display: "block", margin: "0 auto 20px" }}
+          />
+        )}
         <div style={{ fontSize: 20, letterSpacing: 8, fontWeight: 700, textTransform: "uppercase", color: "#000000", opacity: 0.75 }}>
           {config.subtitle || " "}
         </div>
