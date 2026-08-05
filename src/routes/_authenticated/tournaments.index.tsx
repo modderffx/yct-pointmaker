@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Trophy, Plus, Map as MapIcon, Users, Trash2, CheckSquare, Square, X } from "lucide-react";
 import { toast } from "sonner";
 import { SERIES_MAPS, type SeriesType } from "@/lib/tournaments";
+import { loadBrandProfile } from "@/lib/brand-profile";
 
 export const Route = createFileRoute("/_authenticated/tournaments/")({
   head: () => ({ meta: [{ title: "Tournaments — YCT PointMaker" }] }),
