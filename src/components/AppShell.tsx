@@ -21,6 +21,7 @@ const nav = [
 ] as const;
 
 const moreNav = [
+  { to: "/profile", label: "Profile & Personalization", icon: UserCog },
   { to: "/slots", label: "Slots", icon: Grid3x3 },
   { to: "/standings", label: "Standings", icon: Trophy },
   { to: "/settings", label: "Settings", icon: SettingsIcon },
