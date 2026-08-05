@@ -356,7 +356,7 @@ function StandingsPage() {
   );
 }
 
-const ExportCard = ({ ref, rows, theme, logoDataUrls }: { ref: React.Ref<HTMLDivElement>; rows: Row[]; theme: ExportTheme; logoDataUrls: Record<string, string> }) => {
+const ExportCard = ({ ref, rows, theme, logoDataUrls, brandLogo }: { ref: React.Ref<HTMLDivElement>; rows: Row[]; theme: ExportTheme; logoDataUrls: Record<string, string>; brandLogo?: string | null }) => {
   const slots: (Row | null)[] = Array.from({ length: 12 }, (_, i) => rows[i] ?? null);
 
   return (
