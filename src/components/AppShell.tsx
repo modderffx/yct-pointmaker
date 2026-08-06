@@ -1,5 +1,5 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { Home, Swords, Users, Trophy, Settings as SettingsIcon, LogOut, Grid3x3, MoreVertical, Rocket, UserCog } from "lucide-react";
+import { Home, Swords, Users, Trophy, Settings as SettingsIcon, LogOut, Grid3x3, MoreVertical, Rocket, UserCog, Globe2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect, type ReactNode } from "react";
@@ -16,16 +16,18 @@ import {
 
 const nav = [
   { to: "/home", label: "Home", icon: Home },
-  { to: "/tournaments", label: "Tournaments", icon: Swords },
+  { to: "/community", label: "Tournaments", icon: Globe2 },
   { to: "/teams", label: "Teams", icon: Users },
 ] as const;
 
 const moreNav = [
+  { to: "/tournaments", label: "Create Tournament", icon: Swords },
   { to: "/profile", label: "Profile & Personalization", icon: UserCog },
   { to: "/slots", label: "Slots", icon: Grid3x3 },
   { to: "/standings", label: "Standings", icon: Trophy },
   { to: "/settings", label: "Settings", icon: SettingsIcon },
 ] as const;
+
 
 type Workspace = "freefire" | "others";
 const WORKSPACE_KEY = "yct.workspace";
