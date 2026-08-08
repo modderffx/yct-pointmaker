@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_audit_logs: {
+        Row: {
+          action: string
+          admin_email: string | null
+          admin_id: string
+          created_at: string
+          id: string
+          tournament_id: string | null
+          tournament_name: string
+        }
+        Insert: {
+          action: string
+          admin_email?: string | null
+          admin_id: string
+          created_at?: string
+          id?: string
+          tournament_id?: string | null
+          tournament_name: string
+        }
+        Update: {
+          action?: string
+          admin_email?: string | null
+          admin_id?: string
+          created_at?: string
+          id?: string
+          tournament_id?: string | null
+          tournament_name?: string
+        }
+        Relationships: []
+      }
       community_tournaments: {
         Row: {
           created_at: string
