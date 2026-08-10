@@ -54,7 +54,7 @@ function AuthPage() {
       <div className="w-full max-w-md">
         <div className="flex flex-col items-center mb-8">
           <img src={rampageforgeLogo.url} alt="RampageForge" className="w-16 h-16 rounded-xl object-contain shadow-glow" />
-          <h1 className="mt-4 text-3xl font-display font-bold text-gold">RampageForge</h1>
+          <h1 className="mt-4 text-3xl font-display font-bold tracking-wide text-neon-brand">RampageForge</h1>
           <p className="text-sm text-muted-foreground">Free Fire Tournament Manager</p>
         </div>
         <div className="bg-card border border-border rounded-xl p-6 shadow-glow">
