@@ -123,7 +123,6 @@ export function AppShell({ children }: { children: ReactNode }) {
           <Link to="/home" className="flex items-center gap-2">
             <span className="relative w-10 h-10 rounded-lg overflow-hidden ring-neon-brand flex items-center justify-center bg-background">
               <img src={rampageforgeLogo.url} alt="RampageForge" className="w-full h-full object-contain" />
-              <span className="absolute inset-0 hidden items-center justify-center font-display font-bold text-sm text-neon-brand">RF</span>
             </span>
             <div>
               <div className="font-display font-bold text-lg leading-none tracking-wide text-neon-brand">RampageForge</div>
