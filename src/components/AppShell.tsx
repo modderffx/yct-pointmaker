@@ -121,9 +121,12 @@ export function AppShell({ children }: { children: ReactNode }) {
       <aside className="hidden md:flex w-60 flex-col border-r border-border bg-card/40 backdrop-blur p-4">
         <div className="flex items-center justify-between mb-6 px-2">
           <Link to="/home" className="flex items-center gap-2">
-            <img src={rampageforgeLogo.url} alt="RampageForge" className="w-10 h-10 rounded-lg object-contain" />
+            <span className="relative w-10 h-10 rounded-lg overflow-hidden ring-neon-brand flex items-center justify-center bg-background">
+              <img src={rampageforgeLogo.url} alt="RampageForge" className="w-full h-full object-contain" />
+              <span className="absolute inset-0 hidden items-center justify-center font-display font-bold text-sm text-neon-brand">RF</span>
+            </span>
             <div>
-              <div className="font-display font-bold text-lg leading-none">RampageForge</div>
+              <div className="font-display font-bold text-lg leading-none tracking-wide text-neon-brand">RampageForge</div>
               <div className="text-[10px] uppercase tracking-widest text-gold">Esports</div>
             </div>
           </Link>
@@ -153,8 +156,10 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="md:hidden fixed top-0 inset-x-0 z-30 bg-card/90 backdrop-blur border-b border-border">
         <div className="flex items-center justify-between px-4 h-14">
           <Link to="/home" className="flex items-center gap-2">
-            <img src={rampageforgeLogo.url} alt="RampageForge" className="w-8 h-8 rounded-md object-contain" />
-            <span className="font-display font-bold">RampageForge</span>
+            <span className="w-8 h-8 rounded-md overflow-hidden ring-neon-brand flex items-center justify-center bg-background">
+              <img src={rampageforgeLogo.url} alt="RampageForge" className="w-full h-full object-contain" />
+            </span>
+            <span className="font-display font-bold tracking-wide text-neon-brand">RampageForge</span>
           </Link>
           <MoreMenu />
         </div>
