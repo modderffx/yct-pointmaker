@@ -12,7 +12,7 @@ import { calcPoints, compareTiebreak, DEFAULT_PLACEMENT, matchTeamByPlayers, mer
 import { uploadTeamLogo } from "@/lib/teams";
 
 export const Route = createFileRoute("/_authenticated/tournaments/$id")({
-  head: () => ({ meta: [{ title: "Tournament — RankForge" }] }),
+  head: () => ({ meta: [{ title: "Tournament — RampageForge" }] }),
   component: TournamentDetailPage,
 });
 

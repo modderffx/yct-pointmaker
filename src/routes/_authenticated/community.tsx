@@ -23,9 +23,9 @@ import {
 export const Route = createFileRoute("/_authenticated/community")({
   head: () => ({
     meta: [
-      { title: "Community Tournament Hub — RankForge" },
+      { title: "Community Tournament Hub — RampageForge" },
       { name: "description", content: "Browse ongoing and upcoming community esports tournaments, search events, view rules and slots, and contact organizers on WhatsApp." },
-      { property: "og:title", content: "Community Tournament Hub — RankForge" },
+      { property: "og:title", content: "Community Tournament Hub — RampageForge" },
       { property: "og:description", content: "Discover approved community tournaments, prize pools, slots and organizer contacts." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -65,7 +65,7 @@ const PAGE_SIZE = 6;
 
 function waLink(number: string, name: string) {
   const digits = number.replace(/[^0-9]/g, "");
-  const msg = `Hi! I'd like to register for "${name}" listed on RankForge. Could you share the details?`;
+  const msg = `Hi! I'd like to register for "${name}" listed on RampageForge. Could you share the details?`;
   return `https://wa.me/${digits}?text=${encodeURIComponent(msg)}`;
 }
 

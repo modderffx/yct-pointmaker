@@ -40,7 +40,7 @@
 
 :root {
   --radius: 0.5rem;
-  /* RankForge dark theme — Electric Cyan + Fiery Orange on slate/black */
+  /* RampageForge dark theme — Electric Cyan + Fiery Orange on slate/black */
   --background: oklch(0.09 0.01 250);
   --foreground: oklch(0.97 0.005 250);
   --card: oklch(0.14 0.015 250);
@@ -92,3 +92,19 @@
 @utility bg-gradient-gold { background: var(--gradient-gold); color: var(--gold-foreground); }
 @utility bg-surface { background: var(--gradient-surface); }
 @utility shadow-glow { box-shadow: var(--shadow-glow); }
+
+/* RampageForge brand wordmark — aggressive neon glow */
+@utility text-neon-brand {
+  color: var(--gold);
+  text-shadow:
+    0 0 4px color-mix(in oklab, var(--gold) 90%, transparent),
+    0 0 12px color-mix(in oklab, var(--gold) 70%, transparent),
+    0 0 28px color-mix(in oklab, var(--gold) 45%, transparent),
+    0 0 52px color-mix(in oklab, var(--accent) 35%, transparent);
+}
+@utility ring-neon-brand {
+  box-shadow:
+    0 0 0 1px color-mix(in oklab, var(--gold) 60%, transparent),
+    0 0 18px color-mix(in oklab, var(--gold) 45%, transparent),
+    0 0 34px color-mix(in oklab, var(--accent) 25%, transparent);
+}

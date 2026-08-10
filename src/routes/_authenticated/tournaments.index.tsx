@@ -163,9 +163,9 @@ function TournamentsPage() {
       // Auto-populate the point sheet with the organizer's saved branding defaults
       try {
         const profile = loadBrandProfile();
-        window.localStorage.setItem("rankforge.exportTheme", profile.themeKey);
+        window.localStorage.setItem("rampageforge.exportTheme", profile.themeKey);
         window.localStorage.setItem(
-          "rankforge.sheetConfig",
+          "rampageforge.sheetConfig",
           JSON.stringify({ bg: profile.bg, title: profile.orgName, subtitle: profile.subtitle || name.trim().toUpperCase() }),
         );
       } catch { /* ignore */ }
