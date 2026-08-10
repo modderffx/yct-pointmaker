@@ -8,13 +8,13 @@ export type BrandProfile = {
   bg: string;
 };
 
-export const BRAND_PROFILE_LS = "rankforge.brandProfile";
+export const BRAND_PROFILE_LS = "rampageforge.brandProfile";
 
 export const DEFAULT_BRAND_PROFILE: BrandProfile = {
   orgName: "OVERALL STANDINGS",
-  subtitle: "RANKFORGE TOURNAMENT",
+  subtitle: "RAMPAGEFORGE TOURNAMENT",
   logoDataUrl: null,
-  themeKey: "rankforge-default",
+  themeKey: "rampageforge-default",
   bg: "#ffffff",
 };
 

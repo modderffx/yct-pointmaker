@@ -40,7 +40,7 @@
 
 :root {
   --radius: 0.5rem;
-  /* RankForge dark theme — Electric Cyan + Fiery Orange on slate/black */
+  /* RampageForge dark theme — Electric Cyan + Fiery Orange on slate/black */
   --background: oklch(0.09 0.01 250);
   --foreground: oklch(0.97 0.005 250);
   --card: oklch(0.14 0.015 250);

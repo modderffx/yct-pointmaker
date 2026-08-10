@@ -13,7 +13,7 @@ import { THEMES, THEME_LIST, type ExportTheme, type ThemeKey } from "@/lib/stand
 import { loadBrandProfile } from "@/lib/brand-profile";
 
 export const Route = createFileRoute("/_authenticated/standings")({
-  head: () => ({ meta: [{ title: "Standings — RankForge" }] }),
+  head: () => ({ meta: [{ title: "Standings — RampageForge" }] }),
   component: StandingsPage,
 });
 
@@ -24,8 +24,8 @@ type Row = {
   lastPlacement?: number;
 };
 
-const THEME_KEY_LS = "rankforge.exportTheme";
-const SHEET_CONFIG_LS = "rankforge.sheetConfig";
+const THEME_KEY_LS = "rampageforge.exportTheme";
+const SHEET_CONFIG_LS = "rampageforge.sheetConfig";
 
 type SheetConfig = { bg: string; title: string; subtitle: string };
 
@@ -46,11 +46,11 @@ function StandingsPage() {
   const [tournamentId, setTournamentId] = useState<string>("");
   const [brandLogo, setBrandLogo] = useState<string | null>(null);
   const [themeKey, setThemeKey] = useState<ThemeKey>(() => {
-    if (typeof window === "undefined") return "rankforge-default";
+    if (typeof window === "undefined") return "rampageforge-default";
     const saved = window.localStorage.getItem(THEME_KEY_LS) as ThemeKey | null;
     if (saved && THEMES[saved]) return saved;
     const profileTheme = loadBrandProfile().themeKey;
-    return THEMES[profileTheme] ? profileTheme : "rankforge-default";
+    return THEMES[profileTheme] ? profileTheme : "rampageforge-default";
   });
   const theme = THEMES[themeKey];
 
@@ -71,7 +71,7 @@ function StandingsPage() {
     const p = loadBrandProfile();
     updateSheetConfig({ bg: p.bg, title: p.orgName, subtitle: p.subtitle });
     setBrandLogo(p.logoDataUrl);
-    selectTheme(THEMES[p.themeKey] ? p.themeKey : "rankforge-default");
+    selectTheme(THEMES[p.themeKey] ? p.themeKey : "rampageforge-default");
   }
 
   function selectTheme(k: ThemeKey) {
@@ -166,7 +166,7 @@ function StandingsPage() {
       const node = exportRef.current;
       const width = node.offsetWidth || 1080;
       const height = node.scrollHeight || 1920;
-      const bg = themeKey === "rankforge-default"
+      const bg = themeKey === "rampageforge-default"
         ? sheetConfig.bg
         : themeKey === "minimal-pastel" ? "#fafaff" : "#0b0c10";
 
@@ -197,7 +197,7 @@ function StandingsPage() {
 
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
-      link.download = `rankforge-standings-${themeKey}-${new Date().toISOString().slice(0, 10)}.png`;
+      link.download = `rampageforge-standings-${themeKey}-${new Date().toISOString().slice(0, 10)}.png`;
       link.href = url;
       link.rel = "noopener";
       document.body.appendChild(link);
@@ -271,14 +271,14 @@ function StandingsPage() {
         </div>
       </div>
 
-      {/* Edit Sheet controls — only for the RankForge Default Sheet */}
-      {themeKey === "rankforge-default" && (
+      {/* Edit Sheet controls — only for the RampageForge Default Sheet */}
+      {themeKey === "rampageforge-default" && (
         <div className="rounded-xl border border-border bg-card p-4 space-y-3">
           <div className="flex items-start justify-between gap-3">
             <div>
               <div className="text-xs uppercase tracking-widest text-muted-foreground">Live edit</div>
               <div className="font-display font-semibold">Edit Sheet</div>
-              <div className="text-xs text-muted-foreground">Customize the RankForge Default Sheet before exporting.</div>
+              <div className="text-xs text-muted-foreground">Customize the RampageForge Default Sheet before exporting.</div>
             </div>
             <Button variant="outline" size="sm" onClick={resetToBrandDefaults}>Use brand defaults</Button>
           </div>
@@ -349,8 +349,8 @@ function StandingsPage() {
 
       {/* Off-screen export canvas */}
       <div style={{ position: "fixed", left: "-10000px", top: 0, pointerEvents: "none" }} aria-hidden>
-        {themeKey === "rankforge-default" ? (
-          <RankForgeSheet ref={exportRef} rows={top12} config={sheetConfig} brandLogo={brandLogo} />
+        {themeKey === "rampageforge-default" ? (
+          <RampageForgeSheet ref={exportRef} rows={top12} config={sheetConfig} brandLogo={brandLogo} />
         ) : (
           <ExportCard ref={exportRef} rows={top12} theme={theme} logoDataUrls={logoDataUrls} brandLogo={brandLogo} />
         )}
@@ -505,10 +505,10 @@ const ExportCard = ({ ref, rows, theme, logoDataUrls, brandLogo }: { ref: React.
 };
 
 /**
- * RankForge Default Point Sheet — clean black & white broadcast-style layout.
+ * RampageForge Default Point Sheet — clean black & white broadcast-style layout.
  * Columns: # | TEAM NAME | MP | WINS | PP | KP | TP
  */
-const RankForgeSheet = ({ ref, rows, config, brandLogo }: { ref: React.Ref<HTMLDivElement>; rows: Row[]; config: SheetConfig; brandLogo?: string | null }) => {
+const RampageForgeSheet = ({ ref, rows, config, brandLogo }: { ref: React.Ref<HTMLDivElement>; rows: Row[]; config: SheetConfig; brandLogo?: string | null }) => {
   const slots: (Row | null)[] = Array.from({ length: 12 }, (_, i) => rows[i] ?? null);
 
   const cellBase = {
@@ -656,7 +656,7 @@ const RankForgeSheet = ({ ref, rows, config, brandLogo }: { ref: React.Ref<HTMLD
       {/* Footer */}
       <div style={{ marginTop: "auto", paddingTop: 40, textAlign: "center" }}>
         <div style={{ fontSize: 22, letterSpacing: 10, fontWeight: 900, textTransform: "uppercase", color: "#000000" }}>
-          BY RANKFORGE
+          BY RAMPAGEFORGE
         </div>
       </div>
     </div>

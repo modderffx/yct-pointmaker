@@ -5,11 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import rankforgeLogo from "@/assets/rankforge-logo.png.asset.json";
+import rampageforgeLogo from "@/assets/rankforge-logo.png.asset.json";
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
-  head: () => ({ meta: [{ title: "Sign in — RankForge" }] }),
+  head: () => ({ meta: [{ title: "Sign in — RampageForge" }] }),
   component: AuthPage,
 });
 
@@ -53,8 +53,8 @@ function AuthPage() {
     <div className="min-h-screen flex items-center justify-center bg-surface px-4">
       <div className="w-full max-w-md">
         <div className="flex flex-col items-center mb-8">
-          <img src={rankforgeLogo.url} alt="RankForge" className="w-16 h-16 rounded-xl object-contain shadow-glow" />
-          <h1 className="mt-4 text-3xl font-display font-bold text-gold">RankForge</h1>
+          <img src={rampageforgeLogo.url} alt="RampageForge" className="w-16 h-16 rounded-xl object-contain shadow-glow" />
+          <h1 className="mt-4 text-3xl font-display font-bold text-gold">RampageForge</h1>
           <p className="text-sm text-muted-foreground">Free Fire Tournament Manager</p>
         </div>
         <div className="bg-card border border-border rounded-xl p-6 shadow-glow">
