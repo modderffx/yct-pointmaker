@@ -8,7 +8,7 @@ import { toPng } from "html-to-image";
 import { THEMES, THEME_LIST, type ExportTheme, type ThemeKey } from "@/lib/standings-themes";
 
 export const Route = createFileRoute("/_authenticated/slots")({
-  head: () => ({ meta: [{ title: "Slot List — YCT PointMaker" }] }),
+  head: () => ({ meta: [{ title: "Slot List — SKALOR" }] }),
   component: SlotsPage,
 });
 
@@ -347,7 +347,7 @@ const SlotExportCard = ({
         }}
       >
         <div style={{ textTransform: "uppercase", fontWeight: 700, color: theme.footerText }}>
-          Generated automatically by YCT PointMaker AI
+          Generated automatically by SKALOR AI
         </div>
         <div style={{ color: theme.footerMuted }}>yct-pointmaker.app</div>
       </div>

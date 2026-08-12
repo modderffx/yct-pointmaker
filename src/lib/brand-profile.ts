@@ -8,13 +8,13 @@ export type BrandProfile = {
   bg: string;
 };
 
-export const BRAND_PROFILE_LS = "rampageforge.brandProfile";
+export const BRAND_PROFILE_LS = "skalor.brandProfile";
 
 export const DEFAULT_BRAND_PROFILE: BrandProfile = {
   orgName: "OVERALL STANDINGS",
-  subtitle: "RAMPAGEFORGE TOURNAMENT",
+  subtitle: "SKALOR TOURNAMENT",
   logoDataUrl: null,
-  themeKey: "rampageforge-default",
+  themeKey: "skalor-default",
   bg: "#ffffff",
 };
 

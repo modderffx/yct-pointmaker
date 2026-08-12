@@ -16,10 +16,10 @@ import {
 export const Route = createFileRoute("/_authenticated/profile")({
   head: () => ({
     meta: [
-      { title: "Profile & Branding — RampageForge" },
+      { title: "Profile & Branding — SKALOR" },
       { name: "description", content: "Save your organization name, season tag, logo and default sheet theme so every new point sheet matches your brand." },
-      { property: "og:title", content: "Profile & Branding — RampageForge" },
-      { property: "og:description", content: "Set global branding defaults for RampageForge point sheets and standings graphics." },
+      { property: "og:title", content: "Profile & Branding — SKALOR" },
+      { property: "og:description", content: "Set global branding defaults for SKALOR point sheets and standings graphics." },
     ],
   }),
   component: ProfilePage,

@@ -11,7 +11,7 @@ import { SERIES_MAPS, type SeriesType } from "@/lib/tournaments";
 import { loadBrandProfile } from "@/lib/brand-profile";
 
 export const Route = createFileRoute("/_authenticated/tournaments/")({
-  head: () => ({ meta: [{ title: "Tournaments — YCT PointMaker" }] }),
+  head: () => ({ meta: [{ title: "Tournaments — SKALOR" }] }),
   component: TournamentsPage,
 });
 
@@ -163,9 +163,9 @@ function TournamentsPage() {
       // Auto-populate the point sheet with the organizer's saved branding defaults
       try {
         const profile = loadBrandProfile();
-        window.localStorage.setItem("rampageforge.exportTheme", profile.themeKey);
+        window.localStorage.setItem("skalor.exportTheme", profile.themeKey);
         window.localStorage.setItem(
-          "rampageforge.sheetConfig",
+          "skalor.sheetConfig",
           JSON.stringify({ bg: profile.bg, title: profile.orgName, subtitle: profile.subtitle || name.trim().toUpperCase() }),
         );
       } catch { /* ignore */ }

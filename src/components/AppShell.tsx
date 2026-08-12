@@ -1,10 +1,11 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { Home, Swords, Users, Trophy, Settings as SettingsIcon, LogOut, Grid3x3, MoreVertical, Rocket, UserCog, Globe2 } from "lucide-react";
+import { Swords, Users, Trophy, Settings as SettingsIcon, LogOut, Grid3x3, Rocket, UserCog, Globe2, Shield, Plus, Home } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect, type ReactNode } from "react";
+import { toast } from "sonner";
 import freeFireLogo from "@/assets/free-fire-logo.png.asset.json";
-import rampageforgeLogo from "@/assets/rankforge-logo.png.asset.json";
+import { SkalorMark } from "@/components/SkalorMark";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,23 +15,18 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-const nav = [
-  { to: "/home", label: "Home", icon: Home },
-  { to: "/community", label: "Tournaments", icon: Globe2 },
-  { to: "/teams", label: "Teams", icon: Users },
-] as const;
-
 const moreNav = [
+  { to: "/home", label: "Home", icon: Home },
   { to: "/tournaments", label: "Create Tournament", icon: Swords },
+  { to: "/teams", label: "Teams", icon: Users },
   { to: "/profile", label: "Profile & Personalization", icon: UserCog },
   { to: "/slots", label: "Slots", icon: Grid3x3 },
   { to: "/standings", label: "Standings", icon: Trophy },
   { to: "/settings", label: "Settings", icon: SettingsIcon },
 ] as const;
 
-
 type Workspace = "freefire" | "others";
-const WORKSPACE_KEY = "yct.workspace";
+const WORKSPACE_KEY = "skalor.workspace";
 
 export function AppShell({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
@@ -56,136 +52,115 @@ export function AppShell({ children }: { children: ReactNode }) {
     navigate({ to: "/auth", replace: true });
   }
 
-  function WorkspaceTabs({ className = "" }: { className?: string }) {
-    const base = "flex items-center justify-center h-11 px-5 rounded-md text-xs font-semibold uppercase tracking-wider transition";
-    const active = "bg-gradient-gold text-gold-foreground shadow-glow";
-    const inactive = "text-muted-foreground hover:text-foreground";
-    return (
-      <div className={`inline-flex items-center gap-1 rounded-lg border border-border bg-card/60 p-1 ${className}`}>
-        <button
-          type="button"
-          onClick={() => selectWorkspace("freefire")}
-          aria-pressed={workspace === "freefire"}
-          aria-label="Free Fire workspace"
-          className={`${base} ${workspace === "freefire" ? active : inactive}`}
-        >
-          <img src={freeFireLogo.url} alt="Free Fire" className="h-7 w-[90px] object-contain" />
-        </button>
-        <button
-          type="button"
-          onClick={() => selectWorkspace("others")}
-          aria-pressed={workspace === "others"}
-          className={`${base} min-w-[90px] ${workspace === "others" ? active : inactive}`}
-        >
-          Others
-        </button>
-      </div>
-    );
-  }
-
-  function MoreMenu({ className = "" }: { className?: string }) {
-    return (
-      <DropdownMenu>
-        <DropdownMenuTrigger
-          className={`inline-flex items-center justify-center rounded-md border border-gold/40 bg-gold/10 text-gold hover:bg-gold hover:text-gold-foreground transition p-2 ${className}`}
-          aria-label="More options"
-        >
-          <MoreVertical className="w-4 h-4" />
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-52">
-          <DropdownMenuLabel>More</DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          {moreNav.map(item => {
-            const Icon = item.icon;
-            return (
-              <DropdownMenuItem key={item.to} asChild>
-                <Link to={item.to} className="flex items-center gap-2 cursor-pointer">
-                  <Icon className="w-4 h-4 text-gold" /> {item.label}
-                </Link>
-              </DropdownMenuItem>
-            );
-          })}
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={handleSignOut} className="text-destructive focus:text-destructive cursor-pointer">
-            <LogOut className="w-4 h-4 mr-2" /> Sign out
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    );
-  }
-
   const showFreeFire = workspace === "freefire";
 
   return (
-    <div className="min-h-screen bg-surface flex">
-      <aside className="hidden md:flex w-60 flex-col border-r border-border bg-card/40 backdrop-blur p-4">
-        <div className="flex items-center justify-between mb-6 px-2">
-          <Link to="/home" className="flex items-center gap-2">
-            <span className="relative w-10 h-10 rounded-lg overflow-hidden ring-neon-brand flex items-center justify-center bg-background">
-              <img src={rampageforgeLogo.url} alt="RampageForge" className="w-full h-full object-contain" />
-            </span>
-            <div>
-              <div className="font-display font-bold text-lg leading-none tracking-wide text-neon-brand">RampageForge</div>
-              <div className="text-[10px] uppercase tracking-widest text-gold">Esports</div>
-            </div>
-          </Link>
-          <MoreMenu />
-        </div>
-        <div className="px-2 mb-4">
-          <WorkspaceTabs className="w-full justify-between" />
-        </div>
-        {showFreeFire && (
-          <nav className="flex-1 space-y-1">
-            {nav.map(item => {
-              const active = pathname === item.to;
-              const Icon = item.icon;
-              return (
-                <Link key={item.to} to={item.to}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition ${active ? "bg-gold/15 text-gold border border-gold/30" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>
-                  <Icon className="w-4 h-4" />
-                  {item.label}
-                </Link>
-              );
-            })}
-          </nav>
-        )}
-      </aside>
+    <div className="min-h-screen bg-surface">
+      {/* Top bar — brand pinned top-right */}
+      <header className="fixed top-0 inset-x-0 z-30 bg-background/90 backdrop-blur border-b border-border">
+        <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between gap-3">
+          <div className="inline-flex items-center gap-1 rounded-lg border border-border bg-card/60 p-1">
+            <button
+              type="button"
+              onClick={() => selectWorkspace("freefire")}
+              aria-pressed={workspace === "freefire"}
+              aria-label="Free Fire workspace"
+              className={`flex items-center justify-center h-9 px-4 rounded-md text-xs font-semibold uppercase tracking-wider transition ${workspace === "freefire" ? "bg-gold text-gold-foreground" : "text-muted-foreground hover:text-foreground"}`}
+            >
+              <img src={freeFireLogo.url} alt="Free Fire" className="h-6 w-[70px] object-contain" />
+            </button>
+            <button
+              type="button"
+              onClick={() => selectWorkspace("others")}
+              aria-pressed={workspace === "others"}
+              className={`flex items-center justify-center h-9 px-4 min-w-[70px] rounded-md text-xs font-semibold uppercase tracking-wider transition ${workspace === "others" ? "bg-gold text-gold-foreground" : "text-muted-foreground hover:text-foreground"}`}
+            >
+              Others
+            </button>
+          </div>
 
-      {/* mobile top bar */}
-      <div className="md:hidden fixed top-0 inset-x-0 z-30 bg-card/90 backdrop-blur border-b border-border">
-        <div className="flex items-center justify-between px-4 h-14">
-          <Link to="/home" className="flex items-center gap-2">
-            <span className="w-8 h-8 rounded-md overflow-hidden ring-neon-brand flex items-center justify-center bg-background">
-              <img src={rampageforgeLogo.url} alt="RampageForge" className="w-full h-full object-contain" />
-            </span>
-            <span className="font-display font-bold tracking-wide text-neon-brand">RampageForge</span>
-          </Link>
-          <MoreMenu />
+          <div className="flex items-center gap-3">
+            <Link to="/home" className="flex items-center gap-2">
+              <SkalorMark className="h-8 w-9" />
+              <span className="font-display font-bold text-xl tracking-[0.18em] text-foreground">SKALOR</span>
+            </Link>
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                aria-label="Settings menu"
+                className="inline-flex flex-col items-center justify-center gap-[3px] w-9 h-9 rounded-full bg-gold shadow-glow hover:opacity-90 transition"
+              >
+                <span className="w-[3px] h-[3px] rounded-full bg-black" />
+                <span className="w-[3px] h-[3px] rounded-full bg-black" />
+                <span className="w-[3px] h-[3px] rounded-full bg-black" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>Menu</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {moreNav.map(item => {
+                  const Icon = item.icon;
+                  return (
+                    <DropdownMenuItem key={item.to} asChild>
+                      <Link to={item.to} className="flex items-center gap-2 cursor-pointer">
+                        <Icon className="w-4 h-4 text-gold" /> {item.label}
+                      </Link>
+                    </DropdownMenuItem>
+                  );
+                })}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleSignOut} className="text-destructive focus:text-destructive cursor-pointer">
+                  <LogOut className="w-4 h-4 mr-2" /> Sign out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
-        <div className="px-4 pb-2 flex justify-center">
-          <WorkspaceTabs />
-        </div>
-      </div>
-      {showFreeFire && (
-        <nav className="md:hidden fixed bottom-0 inset-x-0 z-30 bg-card/95 backdrop-blur border-t border-border flex">
-          {nav.map(item => {
-            const active = pathname === item.to;
-            const Icon = item.icon;
-            return (
-              <Link key={item.to} to={item.to} className={`flex-1 flex flex-col items-center justify-center py-2 text-[10px] ${active ? "text-gold" : "text-muted-foreground"}`}>
-                <Icon className="w-5 h-5 mb-0.5" />
-                {item.label.split(" ")[0]}
-              </Link>
-            );
-          })}
-        </nav>
-      )}
+      </header>
 
-      <main className="flex-1 min-w-0 pt-24 pb-20 md:pt-0 md:pb-0">
+      <main className="pt-16 pb-28">
         <div className="max-w-6xl mx-auto p-4 md:p-8">
           {showFreeFire ? children : <ComingSoon />}
         </div>
       </main>
+
+      {showFreeFire && (
+        <nav className="fixed bottom-0 inset-x-0 z-30 bg-card/95 backdrop-blur border-t border-border">
+          <div className="max-w-6xl mx-auto relative flex items-end justify-between px-6 h-16">
+            <button
+              type="button"
+              onClick={() => toast("Coming Soon", { description: "Team spaces are on the way." })}
+              className="flex flex-col items-center justify-center py-2 text-[10px] uppercase tracking-wider text-muted-foreground hover:text-foreground transition"
+            >
+              <Shield className="w-5 h-5 mb-0.5" />
+              Your Team
+            </button>
+
+            <Link
+              to="/tournaments"
+              aria-label="Create tournament"
+              className="absolute left-1/2 -translate-x-1/2 -top-7 w-14 h-14 rounded-full bg-gold flex items-center justify-center shadow-glow ring-4 ring-background hover:opacity-90 transition"
+            >
+              <Plus className="w-7 h-7 text-white" strokeWidth={3} />
+            </Link>
+
+            <div className="flex items-end gap-8">
+              <Link
+                to="/community"
+                className={`flex flex-col items-center justify-center py-2 text-[10px] uppercase tracking-wider transition ${pathname === "/community" ? "text-gold" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                <Globe2 className="w-5 h-5 mb-0.5" />
+                Tournaments
+              </Link>
+              <Link
+                to="/profile"
+                className={`flex flex-col items-center justify-center py-2 text-[10px] uppercase tracking-wider transition ${pathname === "/profile" ? "text-gold" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                <UserCog className="w-5 h-5 mb-0.5" />
+                Profile
+              </Link>
+            </div>
+          </div>
+        </nav>
+      )}
     </div>
   );
 }

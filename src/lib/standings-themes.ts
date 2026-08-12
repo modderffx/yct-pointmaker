@@ -1,4 +1,4 @@
-export type ThemeKey = "rampageforge-default" | "cyber-dark" | "esports-fire" | "minimal-pastel";
+export type ThemeKey = "skalor-default" | "cyber-dark" | "esports-fire" | "minimal-pastel";
 
 export type PodiumStyle = { bg: string; border: string; glow: string };
 
@@ -35,17 +35,17 @@ export type ExportTheme = {
 };
 
 export const THEMES: Record<ThemeKey, ExportTheme> = {
-  "rampageforge-default": {
-    key: "rampageforge-default",
-    label: "RampageForge Default Sheet",
-    description: "Black & white striped point sheet — matches the RampageForge broadcast template",
+  "skalor-default": {
+    key: "skalor-default",
+    label: "SKALOR Default Sheet",
+    description: "Black & white striped point sheet — matches the SKALOR broadcast template",
     background: "#ffffff",
     rowBg: "#ffffff",
     rowBorder: "#000000",
     headerText: "#000000",
     bodyText: "#000000",
     mutedText: "#555555",
-    brandLabel: "BY RAMPAGEFORGE",
+    brandLabel: "BY SKALOR",
     brandLabelColor: "#000000",
     titleColor: "#000000",
     titleShadow: "none",
@@ -80,7 +80,7 @@ export const THEMES: Record<ThemeKey, ExportTheme> = {
     headerText: "#9ca3af",
     bodyText: "#ffffff",
     mutedText: "#9ca3af",
-    brandLabel: "RampageForge Tournament",
+    brandLabel: "SKALOR Tournament",
     brandLabelColor: "#2dd4bf",
     titleColor: "#ffffff",
     titleShadow: "none",
@@ -150,7 +150,7 @@ export const THEMES: Record<ThemeKey, ExportTheme> = {
     headerText: "#6366f1",
     bodyText: "#1e1b4b",
     mutedText: "#6b7280",
-    brandLabel: "RampageForge Tournament",
+    brandLabel: "SKALOR Tournament",
     brandLabelColor: "#6366f1",
     titleColor: "#1e1b4b",
     titleShadow: "none",
