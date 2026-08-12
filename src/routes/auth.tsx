@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import skalorLogo from "@/assets/rankforge-logo.png.asset.json";
+import { SkalorMark } from "@/components/SkalorMark";
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
@@ -53,9 +53,9 @@ function AuthPage() {
     <div className="min-h-screen flex items-center justify-center bg-surface px-4">
       <div className="w-full max-w-md">
         <div className="flex flex-col items-center mb-8">
-          <img src={skalorLogo.url} alt="SKALOR" className="w-16 h-16 rounded-xl object-contain shadow-glow" />
-          <h1 className="mt-4 text-3xl font-display font-bold tracking-wide text-neon-brand">SKALOR</h1>
-          <p className="text-sm text-muted-foreground">Free Fire Tournament Manager</p>
+          <SkalorMark className="w-16 h-14" />
+          <h1 className="mt-4 text-3xl font-display font-bold tracking-[0.18em] text-foreground">SKALOR</h1>
+          <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground mt-1">Global Tournament Engine</p>
         </div>
         <div className="bg-card border border-border rounded-xl p-6 shadow-glow">
           <div className="flex gap-2 mb-6">
