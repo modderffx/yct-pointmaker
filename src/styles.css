@@ -33,44 +33,44 @@
   --color-gold-muted: var(--gold-muted);
   --font-display: "Rajdhani", system-ui, sans-serif;
   --font-sans: "Inter", system-ui, sans-serif;
-  --shadow-glow: 0 0 30px -8px var(--gold);
-  --gradient-gold: linear-gradient(135deg, oklch(0.88 0.16 210), oklch(0.72 0.2 45));
-  --gradient-surface: linear-gradient(180deg, oklch(0.15 0.02 250), oklch(0.08 0.01 250));
+  --shadow-glow: 0 10px 30px -12px color-mix(in srgb, var(--gold) 70%, transparent);
+  --gradient-gold: linear-gradient(135deg, #E01A2B, #A8121F);
+  --gradient-surface: linear-gradient(180deg, #101014, #0A0A0C);
 }
 
 :root {
   --radius: 0.5rem;
-  /* SKALOR dark theme — Electric Cyan + Fiery Orange on slate/black */
-  --background: oklch(0.09 0.01 250);
-  --foreground: oklch(0.97 0.005 250);
-  --card: oklch(0.14 0.015 250);
-  --card-foreground: oklch(0.97 0.005 250);
-  --popover: oklch(0.14 0.015 250);
-  --popover-foreground: oklch(0.97 0.005 250);
-  --primary: oklch(0.88 0.16 210);
-  --primary-foreground: oklch(0.1 0.01 250);
-  --secondary: oklch(0.2 0.02 250);
-  --secondary-foreground: oklch(0.97 0.005 250);
-  --muted: oklch(0.17 0.015 250);
-  --muted-foreground: oklch(0.68 0.015 250);
-  --accent: oklch(0.72 0.2 45);
-  --accent-foreground: oklch(0.1 0.01 250);
-  --destructive: oklch(0.62 0.22 25);
-  --destructive-foreground: oklch(0.98 0 0);
-  --border: oklch(0.25 0.02 250);
-  --input: oklch(0.18 0.015 250);
-  --ring: oklch(0.88 0.16 210);
-  --gold: oklch(0.88 0.16 210);
-  --gold-foreground: oklch(0.1 0.01 250);
-  --gold-muted: oklch(0.6 0.14 210);
-  --sidebar: oklch(0.11 0.012 250);
-  --sidebar-foreground: oklch(0.97 0.005 250);
-  --sidebar-primary: oklch(0.88 0.16 210);
-  --sidebar-primary-foreground: oklch(0.1 0.01 250);
-  --sidebar-accent: oklch(0.2 0.02 250);
-  --sidebar-accent-foreground: oklch(0.97 0.005 250);
-  --sidebar-border: oklch(0.25 0.02 250);
-  --sidebar-ring: oklch(0.88 0.16 210);
+  /* SKALOR — near-black canvas, dark slate surfaces, blood-red accent */
+  --background: #0A0A0C;
+  --foreground: #F2F2F0;
+  --card: #121217;
+  --card-foreground: #F2F2F0;
+  --popover: #121217;
+  --popover-foreground: #F2F2F0;
+  --primary: #E01A2B;
+  --primary-foreground: #F2F2F0;
+  --secondary: #1A1A21;
+  --secondary-foreground: #F2F2F0;
+  --muted: #16161C;
+  --muted-foreground: #71717A;
+  --accent: #E01A2B;
+  --accent-foreground: #F2F2F0;
+  --destructive: #E01A2B;
+  --destructive-foreground: #F2F2F0;
+  --border: #1F1F28;
+  --input: #16161C;
+  --ring: #E01A2B;
+  --gold: #E01A2B;
+  --gold-foreground: #F2F2F0;
+  --gold-muted: #8E1420;
+  --sidebar: #0E0E12;
+  --sidebar-foreground: #F2F2F0;
+  --sidebar-primary: #E01A2B;
+  --sidebar-primary-foreground: #F2F2F0;
+  --sidebar-accent: #1A1A21;
+  --sidebar-accent-foreground: #F2F2F0;
+  --sidebar-border: #1F1F28;
+  --sidebar-ring: #E01A2B;
 }
 
 @layer base {
@@ -93,18 +93,11 @@
 @utility bg-surface { background: var(--gradient-surface); }
 @utility shadow-glow { box-shadow: var(--shadow-glow); }
 
-/* SKALOR brand wordmark — aggressive neon glow */
+/* SKALOR wordmark — flat cool white, no glow */
 @utility text-neon-brand {
-  color: var(--gold);
-  text-shadow:
-    0 0 4px color-mix(in oklab, var(--gold) 90%, transparent),
-    0 0 12px color-mix(in oklab, var(--gold) 70%, transparent),
-    0 0 28px color-mix(in oklab, var(--gold) 45%, transparent),
-    0 0 52px color-mix(in oklab, var(--accent) 35%, transparent);
+  color: var(--foreground);
+  text-shadow: none;
 }
 @utility ring-neon-brand {
-  box-shadow:
-    0 0 0 1px color-mix(in oklab, var(--gold) 60%, transparent),
-    0 0 18px color-mix(in oklab, var(--gold) 45%, transparent),
-    0 0 34px color-mix(in oklab, var(--accent) 25%, transparent);
+  box-shadow: none;
 }
