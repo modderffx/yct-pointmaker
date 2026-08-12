@@ -35,11 +35,11 @@ function HomePage() {
       <div className="rounded-2xl bg-gradient-to-br from-card to-background border border-border p-6 md:p-10 relative overflow-hidden">
         <div className="absolute -right-10 -top-10 w-64 h-64 rounded-full bg-gold/10 blur-3xl" />
         <div className="relative">
-          <div className="inline-flex items-center gap-2 text-xs uppercase tracking-widest text-gold mb-3">
-            <Flame className="w-3.5 h-3.5" /> Tournament Command Center
+          <div className="inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.25em] text-gold border border-gold/40 rounded-full px-3 py-1 mb-4">
+            <Flame className="w-3.5 h-3.5" /> Global Tournament Engine
           </div>
-          <h1 className="text-3xl md:text-5xl font-display font-bold mb-2">Run your Free Fire league with SKALOR.</h1>
-          <p className="text-muted-foreground max-w-xl">Upload match screenshots — we extract placements, kills, and player stats automatically. Track every squad across the season.</p>
+          <h1 className="text-3xl md:text-5xl font-display font-bold mb-3 uppercase tracking-wide">Dominate the global arena with SKALOR.</h1>
+          <p className="text-muted-foreground max-w-xl">Upload match screenshots — automated score extraction, placement tracking, and live leaderboards for every squad across all competitive titles.</p>
           <Link to="/tournaments" className="inline-flex items-center gap-2 mt-6 bg-gradient-gold text-gold-foreground px-5 py-2.5 rounded-md font-semibold hover:opacity-90 shadow-glow">
             <Upload className="w-4 h-4" /> Start a tournament
           </Link>
