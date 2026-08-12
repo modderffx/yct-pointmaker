@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect, type ReactNode } from "react";
 import freeFireLogo from "@/assets/free-fire-logo.png.asset.json";
-import rampageforgeLogo from "@/assets/rankforge-logo.png.asset.json";
+import skalorLogo from "@/assets/rankforge-logo.png.asset.json";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -122,10 +122,10 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className="flex items-center justify-between mb-6 px-2">
           <Link to="/home" className="flex items-center gap-2">
             <span className="relative w-10 h-10 rounded-lg overflow-hidden ring-neon-brand flex items-center justify-center bg-background">
-              <img src={rampageforgeLogo.url} alt="RampageForge" className="w-full h-full object-contain" />
+              <img src={skalorLogo.url} alt="SKALOR" className="w-full h-full object-contain" />
             </span>
             <div>
-              <div className="font-display font-bold text-lg leading-none tracking-wide text-neon-brand">RampageForge</div>
+              <div className="font-display font-bold text-lg leading-none tracking-wide text-neon-brand">SKALOR</div>
               <div className="text-[10px] uppercase tracking-widest text-gold">Esports</div>
             </div>
           </Link>
@@ -156,9 +156,9 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className="flex items-center justify-between px-4 h-14">
           <Link to="/home" className="flex items-center gap-2">
             <span className="w-8 h-8 rounded-md overflow-hidden ring-neon-brand flex items-center justify-center bg-background">
-              <img src={rampageforgeLogo.url} alt="RampageForge" className="w-full h-full object-contain" />
+              <img src={skalorLogo.url} alt="SKALOR" className="w-full h-full object-contain" />
             </span>
-            <span className="font-display font-bold tracking-wide text-neon-brand">RampageForge</span>
+            <span className="font-display font-bold tracking-wide text-neon-brand">SKALOR</span>
           </Link>
           <MoreMenu />
         </div>

@@ -40,7 +40,7 @@
 
 :root {
   --radius: 0.5rem;
-  /* RampageForge dark theme — Electric Cyan + Fiery Orange on slate/black */
+  /* SKALOR dark theme — Electric Cyan + Fiery Orange on slate/black */
   --background: oklch(0.09 0.01 250);
   --foreground: oklch(0.97 0.005 250);
   --card: oklch(0.14 0.015 250);
@@ -93,7 +93,7 @@
 @utility bg-surface { background: var(--gradient-surface); }
 @utility shadow-glow { box-shadow: var(--shadow-glow); }
 
-/* RampageForge brand wordmark — aggressive neon glow */
+/* SKALOR brand wordmark — aggressive neon glow */
 @utility text-neon-brand {
   color: var(--gold);
   text-shadow:

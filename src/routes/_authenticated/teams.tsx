@@ -21,7 +21,7 @@ type Team = {
 };
 
 export const Route = createFileRoute("/_authenticated/teams")({
-  head: () => ({ meta: [{ title: "Teams — YCT PointMaker" }] }),
+  head: () => ({ meta: [{ title: "Teams — SKALOR" }] }),
   component: TeamsPage,
 });
 
