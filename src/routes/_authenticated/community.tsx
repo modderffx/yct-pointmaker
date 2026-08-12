@@ -93,8 +93,13 @@ function CommunityPage() {
     queryKey: ["is-admin", userId],
     enabled: !!userId,
     queryFn: async () => {
-      const { data } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
-      return data === true;
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId!)
+        .eq("role", "admin")
+        .maybeSingle();
+      return !!data;
     },
   });
 
