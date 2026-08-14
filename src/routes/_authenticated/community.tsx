@@ -197,28 +197,30 @@ function CommunityPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-start justify-between gap-3 flex-wrap">
-        <div>
-          <h1 className="text-3xl font-display font-bold flex items-center gap-2">
-            <Globe2 className="w-7 h-7 text-gold" /> Community Tournament Hub
+    <div className="w-full max-w-full min-w-0 space-y-6">
+      <div className="flex w-full min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-2xl sm:text-3xl font-display font-bold flex items-center gap-2 min-w-0">
+            <Globe2 className="w-6 h-6 sm:w-7 sm:h-7 text-gold shrink-0" />
+            <span className="min-w-0 break-words">Community Tournament Hub</span>
           </h1>
-          <p className="text-muted-foreground">Verified community events — contact organizers directly to register.</p>
+          <p className="text-sm text-muted-foreground">Verified community events — contact organizers directly to register.</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex w-full min-w-0 flex-wrap items-center gap-2 sm:w-auto">
           {isAdmin.data && (
-            <Button variant="outline" onClick={() => { setShowAdmin(true); setAdminTab("pending"); }} className="border-gold text-gold hover:bg-gold hover:text-gold-foreground">
-              <ShieldCheck className="w-4 h-4 mr-1" /> Admin Moderation
+            <Button variant="outline" onClick={() => { setShowAdmin(true); setAdminTab("pending"); }} className="min-w-0 flex-1 sm:flex-none border-gold text-gold hover:bg-gold hover:text-gold-foreground">
+              <ShieldCheck className="w-4 h-4 mr-1 shrink-0" /> <span className="truncate">Admin</span>
               {(pending.data?.length ?? 0) > 0 && (
                 <span className="ml-2 rounded-full bg-gold text-gold-foreground px-1.5 text-xs font-bold">{pending.data?.length}</span>
               )}
             </Button>
           )}
-          <Button onClick={() => { setEditing(null); setShowForm(true); }} className="bg-gradient-gold text-gold-foreground font-semibold">
-            <Plus className="w-4 h-4 mr-1" /> List My Tournament
+          <Button onClick={() => { setEditing(null); setShowForm(true); }} className="min-w-0 flex-1 sm:flex-none bg-gradient-gold text-gold-foreground font-semibold">
+            <Plus className="w-4 h-4 mr-1 shrink-0" /> <span className="truncate">List My Tournament</span>
           </Button>
         </div>
       </div>
+
 
       {(myPending.data?.length ?? 0) > 0 && (
         <section className="rounded-xl border border-gold/40 bg-gold/5 p-4 space-y-3">
@@ -227,17 +229,18 @@ function CommunityPage() {
           </h2>
           <div className="space-y-2">
             {myPending.data?.map(p => (
-              <div key={p.id} className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card p-3">
+              <div key={p.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-lg border border-border bg-card p-3">
                 <div className="min-w-0">
                   <div className="font-semibold truncate">{p.name}</div>
-                  <div className="text-xs text-muted-foreground">
+                  <div className="text-xs text-muted-foreground truncate">
                     {p.game_title} · {new Date(p.start_at).toLocaleString()} · awaiting review
                   </div>
                 </div>
-                <Button size="sm" variant="outline" onClick={() => { setEditing(p); setShowForm(true); }}>
-                  <Pencil className="w-3.5 h-3.5 mr-1" /> Edit Submission
+                <Button size="sm" variant="outline" className="shrink-0" onClick={() => { setEditing(p); setShowForm(true); }}>
+                  <Pencil className="w-3.5 h-3.5 mr-1" /> Edit
                 </Button>
               </div>
+
             ))}
           </div>
         </section>
